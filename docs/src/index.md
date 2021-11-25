@@ -11,8 +11,10 @@ conductor
 coefficients
 denominator
 galois
-quadratic
+Quadratic
 root
 Cyclotomics.Elist
 Cyclotomics.zumbroich_basis
+Cyclotomics.prime_residues
+Cyclotomics.factor
 ```
