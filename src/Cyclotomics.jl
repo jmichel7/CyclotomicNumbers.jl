@@ -380,7 +380,7 @@ end
 `coefficients(c::Cyc)`
 
 for  a cyclotomic `c` of conductor `n`,  returns a vector `v` of length `n`
-such that `c==∑ᵢ vᵢ₋₁ ζⁱ`.
+such that ``c=\\sum_{i\\in 1:n} v_i \\zeta^{i-1}``.
 
 ```julia-repl
 julia> coefficients(Cyc(E(9)))
@@ -924,7 +924,7 @@ galois(c::Rational,n::Int)=c
 galois(c::Integer,n::Int)=c
 
 """
-  galois(c::Cyc,n::Int) applies to c the galois automorphism
+  galois(c::Cyc, n::Int) applies to c the galois automorphism
   of Q(ζ_conductor(c)) raising all roots of unity to the n-th power.
   n should be prime to conductor(c).
 # Examples

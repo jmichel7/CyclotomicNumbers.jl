@@ -169,7 +169,7 @@ end;
 testmat(12)^2 takes 0.35s in GAP3, 0.24s in GAP4
 
 
-<a target='_blank' href='https://github.com/jmichel7/Cyclotomics.jl/blob/29b2f37408159561ce0a4720d696251e2d7796b1/src/Cyclotomics.jl#L1-L179' class='documenter-source'>source</a><br>
+<a target='_blank' href='https://github.com/jmichel7/Cyclotomics.jl/blob/ea72841bc2eebfbd369a024320bbdc5fb68a8709/src/Cyclotomics.jl#L1-L179' class='documenter-source'>source</a><br>
 
 <a id='Cyclotomics.E' href='#Cyclotomics.E'>#</a>
 **`Cyclotomics.E`** &mdash; *Function*.
@@ -179,7 +179,7 @@ testmat(12)^2 takes 0.35s in GAP3, 0.24s in GAP4
 `E(n,p=1)` makes the `Root1` equal to `ζₙᵖ`
 
 
-<a target='_blank' href='https://github.com/jmichel7/Cyclotomics.jl/blob/29b2f37408159561ce0a4720d696251e2d7796b1/src/Cyclotomics.jl#L254' class='documenter-source'>source</a><br>
+<a target='_blank' href='https://github.com/jmichel7/Cyclotomics.jl/blob/ea72841bc2eebfbd369a024320bbdc5fb68a8709/src/Cyclotomics.jl#L254' class='documenter-source'>source</a><br>
 
 <a id='Cyclotomics.Root1' href='#Cyclotomics.Root1'>#</a>
 **`Cyclotomics.Root1`** &mdash; *Type*.
@@ -207,7 +207,7 @@ julia> Root1(-E(9,4)-E(9,5)) # nothing
 ```
 
 
-<a target='_blank' href='https://github.com/jmichel7/Cyclotomics.jl/blob/29b2f37408159561ce0a4720d696251e2d7796b1/src/Cyclotomics.jl#L981-L1003' class='documenter-source'>source</a><br>
+<a target='_blank' href='https://github.com/jmichel7/Cyclotomics.jl/blob/ea72841bc2eebfbd369a024320bbdc5fb68a8709/src/Cyclotomics.jl#L981-L1003' class='documenter-source'>source</a><br>
 
 <a id='Cyclotomics.conductor' href='#Cyclotomics.conductor'>#</a>
 **`Cyclotomics.conductor`** &mdash; *Function*.
@@ -227,7 +227,7 @@ julia> conductor([E(3),1//2,E(4)])
 ```
 
 
-<a target='_blank' href='https://github.com/jmichel7/Cyclotomics.jl/blob/29b2f37408159561ce0a4720d696251e2d7796b1/src/Cyclotomics.jl#L333-L347' class='documenter-source'>source</a><br>
+<a target='_blank' href='https://github.com/jmichel7/Cyclotomics.jl/blob/ea72841bc2eebfbd369a024320bbdc5fb68a8709/src/Cyclotomics.jl#L333-L347' class='documenter-source'>source</a><br>
 
 <a id='Cyclotomics.coefficients' href='#Cyclotomics.coefficients'>#</a>
 **`Cyclotomics.coefficients`** &mdash; *Function*.
@@ -236,7 +236,7 @@ julia> conductor([E(3),1//2,E(4)])
 
 `coefficients(c::Cyc)`
 
-for  a cyclotomic `c` of conductor `n`,  returns a vector `v` of length `n` such that `c==∑ᵢ vᵢ₋₁ ζⁱ`.
+for  a cyclotomic `c` of conductor `n`,  returns a vector `v` of length `n` such that $c=\sum_{i\in 1:n} v_i \zeta^{i-1}$.
 
 ```julia-repl
 julia> coefficients(Cyc(E(9)))
@@ -253,7 +253,7 @@ julia> coefficients(Cyc(E(9)))
 ```
 
 
-<a target='_blank' href='https://github.com/jmichel7/Cyclotomics.jl/blob/29b2f37408159561ce0a4720d696251e2d7796b1/src/Cyclotomics.jl#L379-L398' class='documenter-source'>source</a><br>
+<a target='_blank' href='https://github.com/jmichel7/Cyclotomics.jl/blob/ea72841bc2eebfbd369a024320bbdc5fb68a8709/src/Cyclotomics.jl#L379-L398' class='documenter-source'>source</a><br>
 
 <a id='Base.denominator' href='#Base.denominator'>#</a>
 **`Base.denominator`** &mdash; *Function*.
@@ -265,14 +265,14 @@ julia> coefficients(Cyc(E(9)))
 returns the smallest `d` such that `d*c` has integral coefficients (thus is an algebraic integer).
 
 
-<a target='_blank' href='https://github.com/jmichel7/Cyclotomics.jl/blob/29b2f37408159561ce0a4720d696251e2d7796b1/src/Cyclotomics.jl#L409-L414' class='documenter-source'>source</a><br>
+<a target='_blank' href='https://github.com/jmichel7/Cyclotomics.jl/blob/ea72841bc2eebfbd369a024320bbdc5fb68a8709/src/Cyclotomics.jl#L409-L414' class='documenter-source'>source</a><br>
 
 <a id='Cyclotomics.galois' href='#Cyclotomics.galois'>#</a>
 **`Cyclotomics.galois`** &mdash; *Function*.
 
 
 
-galois(c::Cyc,n::Int) applies to c the galois automorphism   of Q(ζ_conductor(c)) raising all roots of unity to the n-th power.   n should be prime to conductor(c).
+galois(c::Cyc, n::Int) applies to c the galois automorphism   of Q(ζ_conductor(c)) raising all roots of unity to the n-th power.   n should be prime to conductor(c).
 
 **Examples**
 
@@ -285,7 +285,7 @@ true
 ```
 
 
-<a target='_blank' href='https://github.com/jmichel7/Cyclotomics.jl/blob/29b2f37408159561ce0a4720d696251e2d7796b1/src/Cyclotomics.jl#L926-L938' class='documenter-source'>source</a><br>
+<a target='_blank' href='https://github.com/jmichel7/Cyclotomics.jl/blob/ea72841bc2eebfbd369a024320bbdc5fb68a8709/src/Cyclotomics.jl#L926-L938' class='documenter-source'>source</a><br>
 
 <a id='Cyclotomics.Quadratic' href='#Cyclotomics.Quadratic'>#</a>
 **`Cyclotomics.Quadratic`** &mdash; *Type*.
@@ -307,7 +307,7 @@ julia> Quadratic(1+E(5))
 ```
 
 
-<a target='_blank' href='https://github.com/jmichel7/Cyclotomics.jl/blob/29b2f37408159561ce0a4720d696251e2d7796b1/src/Cyclotomics.jl#L1055-L1071' class='documenter-source'>source</a><br>
+<a target='_blank' href='https://github.com/jmichel7/Cyclotomics.jl/blob/ea72841bc2eebfbd369a024320bbdc5fb68a8709/src/Cyclotomics.jl#L1055-L1071' class='documenter-source'>source</a><br>
 
 <a id='Cyclotomics.root' href='#Cyclotomics.root'>#</a>
 **`Cyclotomics.root`** &mdash; *Function*.
@@ -330,7 +330,7 @@ Cyc{Int64}: √3
 ```
 
 
-<a target='_blank' href='https://github.com/jmichel7/Cyclotomics.jl/blob/29b2f37408159561ce0a4720d696251e2d7796b1/src/Cyclotomics.jl#L1154-L1172' class='documenter-source'>source</a><br>
+<a target='_blank' href='https://github.com/jmichel7/Cyclotomics.jl/blob/ea72841bc2eebfbd369a024320bbdc5fb68a8709/src/Cyclotomics.jl#L1154-L1172' class='documenter-source'>source</a><br>
 
 <a id='Cyclotomics.Elist' href='#Cyclotomics.Elist'>#</a>
 **`Cyclotomics.Elist`** &mdash; *Function*.
@@ -342,7 +342,7 @@ Cyclotomics.Elist(n,i)
 expresses  ζₙⁱ  in  zumbroich_basis(n):  it  is  a  sum  of some ζₙʲ with   coefficients all 1 or all -1. The result is a Pair sgn=>inds where sgn is   true  if coefficients are all 1 and false otherwise, and inds is the list   of i in 0:n-1 such that ζₙⁱ occurs with a non-zero coefficient.
 
 
-<a target='_blank' href='https://github.com/jmichel7/Cyclotomics.jl/blob/29b2f37408159561ce0a4720d696251e2d7796b1/src/Cyclotomics.jl#L424-L431' class='documenter-source'>source</a><br>
+<a target='_blank' href='https://github.com/jmichel7/Cyclotomics.jl/blob/ea72841bc2eebfbd369a024320bbdc5fb68a8709/src/Cyclotomics.jl#L424-L431' class='documenter-source'>source</a><br>
 
 <a id='Cyclotomics.zumbroich_basis' href='#Cyclotomics.zumbroich_basis'>#</a>
 **`Cyclotomics.zumbroich_basis`** &mdash; *Function*.
@@ -354,7 +354,7 @@ Cyclotomics.zumbroich_basis(n::Int)
 returns  the Zumbroich basis of  ℚ (ζₙ) as the  vector of i in 0:n-1 such   that `ζₙⁱ` is in the basis
 
 
-<a target='_blank' href='https://github.com/jmichel7/Cyclotomics.jl/blob/29b2f37408159561ce0a4720d696251e2d7796b1/src/Cyclotomics.jl#L354-L359' class='documenter-source'>source</a><br>
+<a target='_blank' href='https://github.com/jmichel7/Cyclotomics.jl/blob/ea72841bc2eebfbd369a024320bbdc5fb68a8709/src/Cyclotomics.jl#L354-L359' class='documenter-source'>source</a><br>
 
 <a id='Cyclotomics.prime_residues' href='#Cyclotomics.prime_residues'>#</a>
 **`Cyclotomics.prime_residues`** &mdash; *Function*.
@@ -364,7 +364,7 @@ returns  the Zumbroich basis of  ℚ (ζₙ) as the  vector of i in 0:n-1 such  
 the numbers less than n and prime to n 
 
 
-<a target='_blank' href='https://github.com/jmichel7/Cyclotomics.jl/blob/29b2f37408159561ce0a4720d696251e2d7796b1/src/Cyclotomics.jl#L231' class='documenter-source'>source</a><br>
+<a target='_blank' href='https://github.com/jmichel7/Cyclotomics.jl/blob/ea72841bc2eebfbd369a024320bbdc5fb68a8709/src/Cyclotomics.jl#L231' class='documenter-source'>source</a><br>
 
 <a id='Cyclotomics.factor' href='#Cyclotomics.factor'>#</a>
 **`Cyclotomics.factor`** &mdash; *Function*.
@@ -374,5 +374,5 @@ the numbers less than n and prime to n
 `factor(n::Integer)` make `Primes.factor` fast for small Ints by memoizing it
 
 
-<a target='_blank' href='https://github.com/jmichel7/Cyclotomics.jl/blob/29b2f37408159561ce0a4720d696251e2d7796b1/src/Cyclotomics.jl#L239-L242' class='documenter-source'>source</a><br>
+<a target='_blank' href='https://github.com/jmichel7/Cyclotomics.jl/blob/ea72841bc2eebfbd369a024320bbdc5fb68a8709/src/Cyclotomics.jl#L239-L242' class='documenter-source'>source</a><br>
 
