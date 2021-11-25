@@ -1143,7 +1143,7 @@ function Base.show(io::IO,q::Quadratic)
 end
 
 const inforoot=Ref(false)
-using ..Util: xprint
+xprint(x...;p...)=print(IOContext(io,:limit=>true,p...),x...)
 function proot(x,n,r)
   xprint("root(",x)
   if n!=2 xprint(",",n) end
