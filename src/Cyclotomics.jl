@@ -348,13 +348,13 @@ Base.conj(a::Root1)=inv(a)
 Base.:/(a::Root1,b::Root1)=a*inv(b)
 
 #------------------------ type Cyc ----------------------------------
-const impl=:vec # I tried 4 different implementations. For testmat(12)^2
+const impl=:MM # I tried 4 different implementations. For testmat(12)^2
     # ModuleElt is fastest
     # HModuleElt is 50% slower than ModuleElt
     # :svec is 20% slower than ModuleElt
     # :vec is 40% slower than ModuleElt
 
-const lazy=false # whether to lower all the time or on demand
+const lazy=true # whether to lower all the time or on demand
 if impl==:vec
 struct Cyc{T <: Real}<: Number   # a cyclotomic number
   d::Vector{T} # the i-th element is the coefficient on ζⁱ⁻¹
