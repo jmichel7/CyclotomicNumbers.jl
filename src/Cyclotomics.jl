@@ -236,28 +236,26 @@ function format_coefficient(c::String;allow_frac=false)
   end
 end
 
-const supvec=['⁰','¹','²','³','⁴','⁵','⁶','⁷','⁸','⁹']
 function stringexp(io::IO,n::Integer)
   if isone(n) ""
   elseif get(io,:TeX,false) 
     "^"*(n in 0:9 ? string(n) : "{"*string(n)*"}")
   elseif get(io,:limit,false)
-    res=Char[]
-    if n<0 push!(res,'⁻'); n=-n end
-    for i in reverse(digits(n)) push!(res,supvec[i+1]) end
+    if n<0 res=['⁻']; n=-n else res=Char[] end
+    for i in reverse(digits(n)) 
+      push!(res,['⁰','¹','²','³','⁴','⁵','⁶','⁷','⁸','⁹'][i+1])
+    end
     String(res)
   else "^"*string(n)
   end
 end
 
-const subvec=['₀','₁','₂','₃','₄','₅','₆','₇','₈','₉']
 function stringind(io::IO,n::Integer)
   if get(io,:TeX,false) 
     n in 0:9 ? "_"*string(n) : "_{"*string(n)*"}"
   elseif get(io,:limit,false)
-    res=Char[]
-    if n<0 push!(res,'₋'); n=-n end
-    for i in reverse(digits(n)) push!(res,subvec[i+1]) end
+    if n<0 res=['₋']; n=-n else res=Char[] end
+    for i in reverse(digits(n)) push!(res,Char(0x2080+i)) end
     String(res)
   else "_"*string(n)
   end
@@ -317,9 +315,7 @@ function Base.show(io::IO, r::Root1)
   if repl || TeX
     if c==1 print(io,"1")
     elseif c==2 print(io,"-1")
-    else r=(TeX ? "\\zeta" : "ζ")*stringind(io,c)
-      if d>=1 r*=stringexp(io,d) end
-      print(io,r)
+    else print(io,TeX ? "\\zeta" : "ζ",stringind(io,c),stringexp(io,d))
     end
   else
     print(io,d==1 ? "E($c)" : "E($c,$d)")
@@ -354,7 +350,7 @@ const impl=:MM # I tried 4 different implementations. For testmat(12)^2
     # :svec is 20% slower than ModuleElt
     # :vec is 40% slower than ModuleElt
 
-const lazy=true # whether to lower all the time or on demand
+const lazy=false # whether to lower all the time or on demand
 if impl==:vec
 struct Cyc{T <: Real}<: Number   # a cyclotomic number
   d::Vector{T} # the i-th element is the coefficient on ζⁱ⁻¹
@@ -771,7 +767,6 @@ Base.isless(d::Real,c::Cyc)=Cyc(d)<c
 if lazy
 function Base.hash(a::Cyc, h::UInt)
   lower!(a)
-  println("hash called")
   hash(a.d, hash(conductor(a), h))
 end
 else
@@ -804,8 +799,7 @@ function normal_show(io::IO,p::Cyc{T})where T
     else 
       t=format_coefficient(string(v))
       if repl || TeX
-        r=(TeX ? "\\zeta" : "ζ") * stringind(io,conductor(p))
-        r*= stringexp(io,deg)
+        r=(TeX ? "\\zeta" : "ζ")*stringind(io,conductor(p))*stringexp(io,deg)
       else
         r=(deg==1 ? "E($(conductor(p)))" : "E($(conductor(p)),$deg)")
       end
@@ -1078,7 +1072,7 @@ end
 Base.conj(c::Cyc)=galois(c,-1)
 
 # list of galois conjugates of c not equal to c
-function othergalois(c::Cyc)
+function propergalois(c::Cyc)
   res=typeof(c)[]
   for i in prime_residues(conductor(c))[2:end]
     c1=galois(c,i)
@@ -1092,7 +1086,7 @@ function Base.inv(c::Cyc)
     r=num(c)
     if r==1 || r==-1 return Cyc(r) else return Cyc(1//r) end
   end
-  r=prod(othergalois(c))
+  r=prod(propergalois(c))
   n=num(lazy ? lower!(c*r) : c*r)
   n==1 ? r : (n==-1 ? -r : r//n)
 end
@@ -1214,7 +1208,7 @@ function Quadratic(c::Cyc{T})where T
   if v2==0
     sqr=conductor(c)
     if sqr%4==3 sqr=-sqr end
-    gal=othergalois(c)
+    gal=propergalois(c)
     if length(gal)!=1 return nothing end
     a=numerator(convert(T,gal[1]+c))      # trace of 'c' over the rationals
     if length(f)%2==0 b=2*c[1]-a
