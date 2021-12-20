@@ -92,7 +92,7 @@ julia> Rational{Int}(real(E(3)))
 -1//2
 
 julia> imag(E(3))  # imaginary part
-Cyc{Rational{Int64}}: √-3/2
+Cyc{Rational{Int64}}: √3/2
 
 julia> c=Cyc(E(9))   # an effect of the Zumbroich basis
 Cyc{Int64}: -ζ₉⁴-ζ₉⁷
@@ -117,13 +117,12 @@ julia> c=Complex{Float64}(E(3))  # convert to Complex{float} is sometimes useful
 -0.4999999999999999 + 0.8660254037844387im
 ```
 
-In  presence of a float of type  `T`, a `Cyc` is converted to `Complex{T}`.
-In  presence of a `Cyc`,  an integer, a rational,  or a complex of these is
+In  presence  of  a  `Cyc`  a  number  `<:Real`  or  `<:Complex{<:Real}` is
 converted to a `Cyc`.
 
 ```julia-repl
 julia> 0.0+E(3)
--0.4999999999999999 + 0.8660254037844387im
+Cyc{Float64}: 1.0ζ₃
 
 julia> E(3)+1//2
 Cyc{Rational{Int64}}: √-3/2
@@ -214,7 +213,7 @@ end;
 testmat(12)^2 takes 0.35s in GAP3, 0.24s in GAP4
 """
 module Cyclotomics
-export coefficients, root, E, Cyc, conductor, galois, Root1, Quadratic
+export coefficients, root, E, Cyc, conductor, galois, Root1, Quadratic, order
 
 #---- formatting utilities duplicated here to avoid dependency ----------
 const ok="([^-+*/]|√-|{-)*"
@@ -276,8 +275,12 @@ make `Primes.factor` fast for small Ints by memoizing it
 """
 factor(n::Integer)=get!(()->Primes.factor(Dict,n),dict_factor,n)
 
-#---- utility duplicated here to avoid dependency ----------
-constant(a)=isempty(a) || all(==(first(a)),a)
+#---- duplicated here to avoid Combinat dependency ----------
+function constant(a)
+  if isempty(a) return true end
+  o=first(a)
+  all(==(o),a)
+end
 
 #------------------------ type Root1 ----------------------------------
 struct Root1 <: Number # E(c,n)
@@ -285,17 +288,22 @@ struct Root1 <: Number # E(c,n)
   global Root1_(x)=new(x)
 end
 
+Base.mod1(x::Rational{<:Integer})=mod(numerator(x),denominator(x))//denominator(x)
+
 " `E(n,p=1)` makes the `Root1` equal to `ζₙᵖ`"
-E(c,n=1)=Root1_(mod(Int(n),Int(c))//Int(c))
+E(c,n=1)=Root1_(mod1(n//c))
 
-conductor(a::Root1)=denominator(a.r)
 Base.exponent(a::Root1)=numerator(a.r)
+order(a::Root1)=denominator(a.r)
+conductor(a::Root1)=order(a)%4==2 ? div(order(a),2) : order(a)
 
-Root1(;r=0)=E(denominator(r),numerator(r)) # does a mod1
+# does a mod1 via call to E
+Root1(;r::Union{Integer,Rational{<:Integer}}=0)=E(denominator(r),numerator(r))
 
 function Root1(c::Real)
   if c==1 Root1_(0//1)
   elseif c==-1 Root1_(1//2)
+  elseif c==0 Cyc(0)
   else nothing
   end
 end
@@ -311,7 +319,7 @@ function Base.show(io::IO, r::Root1)
   repl=get(io,:limit,false)
   TeX=get(io,:TeX,false)
   d=exponent(r)
-  c=conductor(r)
+  c=order(r)
   if repl || TeX
     if c==1 print(io,"1")
     elseif c==2 print(io,"-1")
@@ -323,7 +331,7 @@ function Base.show(io::IO, r::Root1)
 end
 
 function Base.cmp(a::Root1,b::Root1)
-  r=cmp(conductor(a),conductor(b))
+  r=cmp(order(a),order(b))
   if !iszero(r) return r end
   cmp(exponent(a),exponent(b))
 end
@@ -335,18 +343,19 @@ Base.:(==)(a::Root1,b::Root1)=a.r==b.r
 Base.one(a::Root1)=Root1_(0//1)
 Base.zero(a::Root1)=zero(Cyc{Int})
 Base.isone(a::Root1)=iszero(a.r)
-Base.:*(a::Root1,b::Root1)=Root1(;r=a.r+b.r)
+Base.:*(a::Root1,b::Root1)=Root1_(mod1(a.r+b.r))
 
-Base.:^(a::Root1,n::Integer)=Root1(;r=n*a.r)
+Base.:^(a::Root1,n::Integer)=Root1_(mod1(n*a.r))
 Base.:^(a::Root1,r::Rational{<:Integer})=root(a,denominator(r))^numerator(r)
-Base.inv(a::Root1)=Root1(;r=-a.r)
+Base.inv(a::Root1)=Root1_(mod1(-a.r))
 Base.conj(a::Root1)=inv(a)
 Base.:/(a::Root1,b::Root1)=a*inv(b)
+Base.://(a::Root1,b::Root1)=a/b
 
 #------------------------ type Cyc ----------------------------------
 const impl=:MM # I tried 4 different implementations. For testmat(12)^2
-    # ModuleElt is fastest
-    # HModuleElt is 50% slower than ModuleElt
+    # MM=ModuleElt is fastest
+    # MM=HModuleElt is 50% slower than ModuleElt
     # :svec is 20% slower than ModuleElt
     # :vec is 40% slower than ModuleElt
 
@@ -365,7 +374,7 @@ end
 conductor(c::Cyc)=length(c.d)
 Base.pairs(c::Cyc)=Iterators.map(x->x[1]-1=>x[2],
                               Iterators.filter(x->x[2]!=0,enumerate(c.d)))
-Base.getindex(c::Cyc,i::Integer)=c.d[i+1]
+Base.getindex(c::Cyc,i::Integer)=c.d[mod(i,conductor(c))+1]
 elseif impl==:svec
 using SparseArrays
 mutable struct Cyc{T}<:Number    # a cyclotomic number
@@ -381,7 +390,7 @@ function Cyc(c::Integer,v::SparseVector)
   if c!=length(v) error("c=$c but length(v)=$(length(v))\n") end
   Cyc_(v)
 end
-Base.getindex(c::Cyc,i::Integer)=c.d[i+1]
+Base.getindex(c::Cyc,i::Integer)=c.d[mod(i,conductor(c))+1]
 
 elseif impl==:MM
 using ModuleElts
@@ -392,7 +401,7 @@ mutable struct Cyc{T <: Real}<: Number   # a cyclotomic number
 end
 conductor(c::Cyc)=c.n
 Base.pairs(c::Cyc)=c.d
-Base.getindex(c::Cyc,i::Integer)=c.d[i]
+Base.getindex(c::Cyc,i::Integer)=c.d[mod(i,conductor(c))]
 end
 
 """
@@ -483,7 +492,7 @@ an algebraic integer).
 """
 Base.denominator(c::Cyc)=lcm(denominator.(values(c.d)))
 
-Base.numerator(c::Cyc{<:Rational{T}}) where T =Cyc{T}(c*denominator(c))
+Base.numerator(c::Cyc{<:Union{T,Rational{T}}}) where T<:Integer=Cyc{T}(c*denominator(c))
 
 const Elist_dict=Dict{Tuple{Int,Int},Pair{Bool,Vector{Int}}}((1,0)=>(true=>
                        [impl==:MM ? 0 : 1])) # to memoize Elist
@@ -550,7 +559,7 @@ const E_dict=Dict{Rational{Int},Cyc{Int}}(0//1=>Cyc(1))
 
 function Cyc(a::Root1) # the result is lowered
   get!(E_dict,a.r) do
-    c=conductor(a)
+    c=order(a)
     e=exponent(a)
     if c%4==2 return -E(div(c,2),div(e,2)+div(c+2,4)) end
     s,l=Elist(c,e)
@@ -629,14 +638,14 @@ function Base.convert(::Type{T},c::Cyc;check=true)where T<:AbstractFloat
   real(convert(Complex{T},c))
 end
 
-function (::Type{T})(c::Cyc)where T<:AbstractFloat
-  real(convert(Complex{T},c;check=true))
+function (::Type{T})(c::Cyc)where T<:AbstractFloat 
+  convert(T,c;check=true)
 end
 
 (::Type{T})(a::Root1) where T<:Number = T(Cyc(a))
 
 function Complex{T}(c::Cyc)where T<:AbstractFloat
-  sum(((k,v),)->v*cispi(2*T(k)/conductor(c)),pairs(c);init=Complex{T}(0.0))
+  sum(((k,v),)->T(v)*cispi(2*T(k)/conductor(c)),pairs(c);init=Complex{T}(0.0))
 end
 
 function Complex{T}(c::Cyc)where T<:Union{Integer,Rational}
@@ -668,11 +677,12 @@ end
 Base.isinteger(a::Root1)=a.r==0//1 || a.r==1//2
 
 Base.isreal(c::Cyc)=conductor(c)==1 || c==conj(c)
+Base.isreal(a::Root1)=isinteger(a)
 
 function Base.real(c::Cyc{T}) where T<:Real
   if lazy lower!(c) end
   if conductor(c)==1 return num(c) end
-  (c+conj(c))/2
+  (c+conj(c))*1//2
 end
 
 Base.real(a::Root1)=real(Cyc(a))
@@ -680,10 +690,13 @@ Base.real(a::Root1)=real(Cyc(a))
 function Base.imag(c::Cyc{T}) where T<:Real
   if lazy lower!(c) end
   if conductor(c)==1 return 0 end
-  (c-conj(c))/2
+  E(4)*(conj(c)-c)*1//2
 end
 
 Base.imag(a::Root1)=imag(Cyc(a))
+Base.reim(c::Cyc)=(real(c),imag(c))
+Base.abs2(a::Root1)=abs2(Cyc(a))
+Base.abs(a::Root1)=one(a)
 
 # addroot: add c*E(n,i) to res
 function addroot(res,n,i,c)
@@ -721,19 +734,11 @@ function promote_conductor(a::Cyc,b::Cyc)
   (raise(l,a),raise(l,b))
 end
 
-function Base.promote_rule(a::Type{Cyc{T1}},b::Type{T2})where {T1,T2<:AbstractFloat}
-  Complex{promote_type(T1,T2)}
-end
-
-function Base.promote_rule(a::Type{Cyc{T1}},b::Type{Complex{T2}})where {T1,T2<:AbstractFloat}
-  Complex{promote_type(T1,T2)}
-end
-
-function Base.promote_rule(a::Type{Cyc{T1}},b::Type{Complex{T2}})where {T1,T2<:Union{Integer,Rational{<:Integer}}}
+function Base.promote_rule(a::Type{Cyc{T1}},b::Type{T2})where {T1,T2<:Real}
   Cyc{promote_type(T1,T2)}
 end
 
-function Base.promote_rule(a::Type{Cyc{T1}},b::Type{T2})where {T1,T2<:Union{Integer,Rational{<:Integer}}}
+function Base.promote_rule(a::Type{Cyc{T1}},b::Type{Complex{T2}})where {T1,T2<:Real}
   Cyc{promote_type(T1,T2)}
 end
 
@@ -823,9 +828,16 @@ function Base.show(io::IO, p::Cyc{T})where T
   if lazy lower!(p) end
   if conductor(p)==1
     n=num(p)
-    if T<:Integer || (T<:Rational{<:Integer} && denominator(n)==1)
-      if repl||TeX||haskey(io,:typeinfo) print(io,numerator(n))
-      else print(io,"Cyc{",T,"}(",numerator(n),")")
+    if T<:Integer || T<:Rational{<:Integer}
+      if denominator(n)==1
+        if repl||TeX||haskey(io,:typeinfo) print(io,numerator(n))
+        else print(io,"Cyc{",T,"}(",numerator(n),")")
+        end
+        return
+      end
+    else
+      if repl||TeX||haskey(io,:typeinfo) print(io,n)
+      else print(io,"Cyc{",T,"}(",n,")")
       end
       return
     end
@@ -918,11 +930,12 @@ Base.://(c::Root1,a::Real)=Cyc(c)//a
 Base.://(a::Real,c::Root1)=a//Cyc(c)
 Base.://(c::Root1,a::Cyc)=Cyc(c)//a
 Base.://(a::Cyc,c::Root1)=a//Cyc(c)
-Base.:/(c::Cyc,a::Real)=c//a
-Base.:/(a::Cyc,c::Cyc)=a//c
-Base.:/(a::Real,c::Cyc)=a//c
+Base.:/(c::Cyc,a::Real)=c*inv(a)
+Base.:/(a::Cyc,c::Cyc)=a*inv(c)
+Base.:/(a::Real,c::Cyc)=a*inv(c)
+Base.div(c::Root1,a)=div(Cyc(c),a)
 
-function Base.:*(a::Cyc,b::Cyc)
+function Base.:*(a::Cyc,b::Cyc;reduce=!lazy)
   a,b=promote(a,b)
   if obviouslyzero(a) return a end
   if obviouslyzero(b) return b end
@@ -937,7 +950,7 @@ function Base.:*(a::Cyc,b::Cyc)
     addroot(res,n,na*i+nb*j,ai*bj)
   end
   res=Cyc(n,impl==:MM ? MM(res) : impl==:svec ? dropzeros!(res) : res)
-  lazy ? res : lower!(res)
+  reduce ? lower!(res) : res
 end
 
 # change c to have data n,v
@@ -959,7 +972,7 @@ function lower!(c::Cyc{T})where T # write c in smallest Q(ζ_n) where it sits
  # println("lowering $(conductor(c)):$(c.d)")
   if n==1 return c end
 if impl==:MM
-  if obviouslyzero(c) return Cyc!(c,1,MM(eltype(c.d)[])) end
+  if obviouslyzero(c) return Cyc!(c,1,zero(c.d)) end
 else
   if obviouslyzero(c) return Cyc!(c,1,zerocyc(eltype(c.d),1)) end
 end
@@ -999,17 +1012,18 @@ elseif impl==:svec
         return lower!(Cyc!(c,m,SparseVector(m,map(x->1+div(x-1,p),kk),val)))
       end
     elseif iszero(length(kk)%(p-1))
-      kk=kk.-1
       cnt=zeros(Int,m)
-      for k in kk cnt[1+(k%m)]+=1 end
+      for k in kk cnt[1+(k-1)%m]+=1 end
       if !all(x->iszero(x) || x==p-1,cnt) continue end
       u=findall(!iszero,cnt).-1
       kk=@. div(u+m*mod(-u,p)*invmod(m,p),p)%m
       if !issorted(kk) sort!(kk) end
+      let c=c, kk=kk, p=p, m=m
       if p==2  
-        return lower!(Cyc!(c,m,SparseVector(m,1 .+kk,[c.d[1+(k*p)%n] for k in kk])))
-      elseif all(k->constant(map(i->c.d[1+(m*i+k*p)%n],1:p-1)),kk)
-        return lower!(Cyc!(c,m,SparseVector(m,1 .+kk,[-c.d[1+(m+k*p)%n] for k in kk])))
+        return lower!(Cyc!(c,m,SparseVector(m,kk.+1,[c.d[1+(k*p)%n] for k in kk])))
+      elseif all(k->constant(c.d[1+(m*i+k*p)%n] for i in 1:p-1),kk)
+        return lower!(Cyc!(c,m,SparseVector(m,kk.+1,[-c.d[1+(m+k*p)%n] for k in kk])))
+      end
       end
     end
 elseif impl==:MM
@@ -1025,7 +1039,7 @@ elseif impl==:MM
       kk=@. div(u+m*mod(-u,p)*invmod(m,p),p)%m
       if p==2  
         return lower!(Cyc!(c,m,MM(k=>c.d[(k*p)%n] for k in kk)))
-      elseif all(k->constant(map(i->c.d[(m*i+k*p)%n],1:p-1)),kk)
+      elseif all(k->constant(c.d[(m*i+k*p)%n] for i in 1:p-1),kk)
         return lower!(Cyc!(c,m,MM(k=>-c.d[(m+k*p)%n] for k in kk)))
       end
     end
@@ -1053,7 +1067,7 @@ true
 """
 function galois(c::Cyc,n::Int)
   if gcd(n,conductor(c))!=1 
-    error("$n should be prime to conductor($c)=$(conductor(c))")
+    throw(DomainError(n,"should be prime to conductor $(conductor(c))"))
   end
   if obviouslyzero(c) return c end
   res=zerocyc(eltype(c.d),conductor(c))
@@ -1063,9 +1077,9 @@ function galois(c::Cyc,n::Int)
   Cyc(conductor(c),impl==:MM ? MM(res) : res)
 end
 
-function galois(c::Root1,n::Int)
-  d=denominator(c.r)
-  if gcd(n,d)!=1 error("$n should be prime to conductor($c)=$d") end
+function galois(c::Root1,n::Int) # treat n prime to conductor(c)
+  d=order(c)
+  if gcd(n,d)!=1 error("$n should be prime to order($c)=$d") end
   Root1(;r=n*c.r)
 end
 
@@ -1081,20 +1095,25 @@ function propergalois(c::Cyc)
   res
 end
 
-function Base.inv(c::Cyc)
+function Base.inv(c::Cyc{T})where T
   if conductor(c)==1
     r=num(c)
-    if r==1 || r==-1 return Cyc(r) else return Cyc(1//r) end
+    if r==1 || r==-1 return Cyc(r) else 
+    return T<:Integer ? Cyc(1//r) : Cyc(1/r) end
   end
-  r=prod(propergalois(c))
-  n=num(lazy ? lower!(c*r) : c*r)
-  n==1 ? r : (n==-1 ? -r : r//n)
+  l=propergalois(c)
+  r=l[1]
+  for t in l[2:end] r=*(r,t;reduce=false) end
+  n=num(*(c,r;reduce=true))
+  n==1 ? r : n==-1 ? -r : T<:Integer ? r//n : r/n
 end
 
 Base.:^(a::Cyc, n::Integer)=n>=0 ? Base.power_by_squaring(a,n) :
                                    Base.power_by_squaring(inv(a),-n)
 
-Base.abs(c::Cyc)=c*conj(c)
+Base.abs2(c::Cyc)=c*conj(c)
+Base.abs(c::Cyc)=abs(complex(c))
+Base.adjoint(c::Cyc)=conj(c)
 
 """
 `Root1(c)`
@@ -1107,7 +1126,7 @@ Base.abs(c::Cyc)=c*conj(c)
 julia> r=Root1(-E(9,2)-E(9,5))
 Root1: ζ₉⁸
 
-julia> conductor(r)
+julia> order(r)
 9
 
 julia> exponent(r)
@@ -1120,26 +1139,16 @@ julia> Root1(-E(9,4)-E(9,5)) # nothing
 ```
 """ 
 function Root1(c::Cyc)
+  if lazy lower!(c) end
   if !(all(x->last(x)==1,pairs(c)) || all(x->last(x)==-1,pairs(c)))
     return nothing
   end
-  if lazy lower!(c) end
-# for i in 0:conductor(c)-1
-#   s,v=Elist(conductor(c),i)
-#   if impl==:svec
-#    if c.d.nzind!=v || c.d.nzval[1]!=(s ? 1 : -1) continue end
-#   elseif impl==:vec
-#     l=collect(pairs(c))
-#     if first.(l)!=v || last(l[1])!=(s ? 1 : -1) continue end
-#   else
-#     if first.(c.d.d)!=v || first(values(c.d))!=(s ? 1 : -1) continue end
-#   end
-#   return Root1_(i//conductor(c))
-  for i in prime_residues(conductor(c))
-    if c==E(conductor(c),i) return Root1_(i//conductor(c)) end
-    if -c==E(conductor(c),i)
-      if conductor(c)%2==0 return E(conductor(c),div(conductor(c),2)+i)
-      else return E(2conductor(c),conductor(c)+2*i)
+  n=conductor(c)
+  for i in prime_residues(n)
+    if c==E(n,i) return Root1_(i//n) end
+    if -c==E(n,i)
+      if n%2==0 return E(n,div(n,2)+i)
+      else return E(2n,n+2*i)
       end
     end
   end
@@ -1149,9 +1158,9 @@ end
 Base.:(==)(a::Root1,b::Number)=Cyc(a)==b # too expensive in lazy case
 
 function Base.:*(a::Cyc,b::Root1)
-  n=lcm(conductor(a),conductor(b))
+  n=lcm(conductor(a),order(b))
   na=div(n,conductor(a))
-  nb=div(n,conductor(b))
+  nb=div(n,order(b))
   res=zerocyc(eltype(a.d),n)
   for (i,va) in pairs(a) addroot(res,n,na*i+nb*exponent(b),va) end
   res=Cyc(n,impl==:MM ? MM(res) : impl==:svec ? dropzeros!(res) : res)
@@ -1163,9 +1172,7 @@ Base.:+(a::Root1,b::Root1)=Cyc(a)+Cyc(b)
 Base.:-(a::Root1,b::Root1)=Cyc(a)-Cyc(b)
 Base.:-(r::Root1)=-Cyc(r)
 Base.promote_rule(a::Type{Root1},b::Type{Cyc{T}}) where T =b
-Base.promote_rule(a::Type{Root1},b::Type{<:Integer})=Cyc{b}
-Base.promote_rule(a::Type{Root1},b::Type{<:Rational{<:Integer}})=Cyc{b}
-Base.promote_rule(a::Type{Root1},b::Type{<:AbstractFloat})=Complex{b}
+Base.promote_rule(a::Type{Root1},b::Type{<:Real})=Cyc{b}
 Base.promote_rule(a::Type{Root1},b::Type{Complex{T}}) where T =Cyc{promote_type(T,Int)}
 #------------------- end of Root1 ----------------------------------------
 
@@ -1194,10 +1201,9 @@ julia> Quadratic(1+E(5))
 ```
 """
 function Quadratic(c::Cyc{T})where T
-  l1=coefficients(c)
-  den=lcm(denominator.(l1))
-  c=Cyc{typeof(den)}(c*den)
-  if conductor(c)==1 return Quadratic(numerator(num(c)),0,1,den) end
+  den=denominator(c)
+  c=numerator(c)
+  if conductor(c)==1 return Quadratic(num(c),0,1,den) end
   f=factor(conductor(c))
   v2=get(f,2,0)
   if v2>3 || (v2==2 && any(p->p[1]!=2 && p[2]!=1,f)) ||
@@ -1211,10 +1217,10 @@ function Quadratic(c::Cyc{T})where T
     gal=propergalois(c)
     if length(gal)!=1 return nothing end
     a=numerator(convert(T,gal[1]+c))      # trace of 'c' over the rationals
-    if length(f)%2==0 b=2*c[1]-a
+    if iseven(length(f)) b=2*c[1]-a
     else b=2*c[1]+a
     end
-    if a&1==0 && b&1==0 a>>=1; b>>=1; d=1
+    if iseven(a) && iseven(b) a>>=1; b>>=1; d=1
     else d=2
     end
   elseif v2==2
@@ -1222,7 +1228,7 @@ function Quadratic(c::Cyc{T})where T
     if sqr==1 a=c[0];b=-c[1]
     else
       a=c[4]
-      if length(f)%2==0 a=-a end
+      if iseven(length(f)) a=-a end
       b=-c[sqr+4]
     end
     if sqr%4==1 sqr=-sqr; b=-b end
@@ -1234,7 +1240,7 @@ function Quadratic(c::Cyc{T})where T
       if b==c[3] sqr=-2 end
     else
       a=c[8]
-      if length(f)%2==0 a=-a end
+      if iseven(length(f)) a=-a end
       b=c[(sqr>>1)+8]
       if b!=-c[3*(sqr>>1)-8] sqr=-sqr
       elseif (sqr>>1)%4==3 b=-b
@@ -1318,7 +1324,7 @@ root(x::Rational,n=2)=root(numerator(x),n)//root(denominator(x),n)
 
 # find the "canonical" best of the n possible roots
 function root(r::Root1,n=2)
-  d=conductor(r)
+  d=order(r)
   j=1
   n1=n
   while true
