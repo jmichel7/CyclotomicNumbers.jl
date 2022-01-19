@@ -11,6 +11,7 @@ conductor
 coefficients
 denominator
 galois
+conjugates
 Quadratic
 root
 Cyclotomics.Elist
