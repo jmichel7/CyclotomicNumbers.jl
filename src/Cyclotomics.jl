@@ -1163,15 +1163,11 @@ function conjugates(c) # Root1 or Cyc
 end
 
 function Base.inv(c::Cyc)
-  if conductor(c)==1
-    r=num(c)
-    if r==1 || r==-1 return Cyc(r) else return Cyc(1/r) end
-  end
+  if conductor(c)==1 return Cyc(1/num(c)) end
   l=conjugates(c)
   r=l[2]
   for t in l[3:end] r=*(r,t;reduce=false) end
-  n=num(*(c,r;reduce=true))
-  n==1 ? r : n==-1 ? -r : r/n
+  r/num(*(c,r;reduce=true))
 end
 
 Base.:^(a::Cyc, n::Integer)=n>=0 ? Base.power_by_squaring(a,n) :
