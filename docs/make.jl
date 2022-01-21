@@ -1,3 +1,3 @@
-using Documenter, DocumenterMarkdown, Cyclotomics
+using Documenter, DocumenterMarkdown, CyclotomicNumbers
 
-makedocs(sitename="Cyclotomics documentation",format=Markdown(),modules=[Cyclotomics])
+makedocs(sitename="CyclotomicNumbers documentation",format=Markdown(),modules=[CyclotomicNumbers])
