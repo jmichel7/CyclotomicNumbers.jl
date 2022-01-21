@@ -27,7 +27,7 @@ end
 @test mytest("CyclotomicNumbers.jl","conductor(a)","1")
 @test mytest("CyclotomicNumbers.jl","typeof(Int(a))","Int64")
 @test mytest("CyclotomicNumbers.jl","inv(1+E(4))","Cyc{Float64}: 0.5-0.5ζ₄")
-@test mytest("CyclotomicNumbers.jl","inv(E(5)+E(5,4))","Cyc{Int64}: -ζ₅²-ζ₅³")
+@test mytest("CyclotomicNumbers.jl","1//(1+E(4))","Cyc{Rational{Int64}}: (1-ζ₄)/2")
 @test mytest("CyclotomicNumbers.jl","Cyc(1//2+im)","Cyc{Rational{Int64}}: (1+2ζ₄)/2")
 @test mytest("CyclotomicNumbers.jl","conj(1+E(4))","Cyc{Int64}: 1-ζ₄")
 @test mytest("CyclotomicNumbers.jl","real(E(3))","Cyc{Rational{Int64}}: -1/2")
