@@ -1,10 +1,10 @@
-# Cyclotomics
+# CyclotomicNumbers
 ```@contents
 Depth=3
 ```
 
 ```@docs
-Cyclotomics
+CyclotomicNumbers
 E
 Root1
 conductor
@@ -14,8 +14,8 @@ galois
 conjugates
 Quadratic
 root
-Cyclotomics.Elist
-Cyclotomics.zumbroich_basis
-Cyclotomics.prime_residues
-Cyclotomics.factor
+CyclotomicNumbers.Elist
+CyclotomicNumbers.zumbroich_basis
+CyclotomicNumbers.prime_residues
+CyclotomicNumbers.factor
 ```
