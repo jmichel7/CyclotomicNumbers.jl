@@ -545,6 +545,11 @@ an algebraic integer).
 """
 Base.denominator(c::Cyc)=lcm(denominator.(values(c.d)))
 
+"""
+`numerator(c::Cyc{Rational})`
+
+returns `denominator(c)*c` as a cyclotomic over the integers.
+"""
 Base.numerator(c::Cyc{<:Union{T,Rational{T}}}) where T<:Integer=Cyc{T}(c*denominator(c))
 
 const Elist_dict=Dict{Tuple{Int,Int},Pair{Bool,Vector{Int}}}((1,0)=>(true=>
@@ -805,7 +810,7 @@ function Base.cmp(a::Cyc,b::Cyc)
   @static if lazy lower!(a);lower!(b) end
   t=cmp(conductor(a),conductor(b))
   if !iszero(t) return t end
-  cmp(a.d,b.d)
+  conductor(a)==1 ? cmp(num(a),num(b)) : cmp(a.d,b.d) # fix compare with 0
 end
 
 if lazy
