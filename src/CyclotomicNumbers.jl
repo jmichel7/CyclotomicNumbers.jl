@@ -314,10 +314,15 @@ function stringind(io::IO,n::Integer)
 end
 
 #---- number theory utilities duplicated here to avoid dependency ----------
-" the numbers less than n and prime to n "
+" `prime_residues(n)` the numbers less than `n` and prime to `n` "
 function prime_residues(n)
   if n==1 return [0] end
-  filter(i->gcd(n,i)==1,1:n-1) # inefficient; some sieving would be better
+  pp=trues(n-1)
+  for i in 2:div(n,2)
+    if !pp[i] || n%i!=0 continue end
+    pp[i:i:n-1].=false
+  end
+  (1:n-1)[pp]
 end
 
 import Primes
