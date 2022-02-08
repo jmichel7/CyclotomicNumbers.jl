@@ -929,27 +929,11 @@ function Base.:+(x::Cyc,y::Cyc)
   if obviouslyzero(a) return b
   elseif obviouslyzero(b) return a
   end
-if impl==:vec
   a,b=promote_conductor(a,b)
+if impl==:vec || impl==:MM
   res=Cyc(conductor(a),a.d+b.d)
 elseif impl==:svec
-  a,b=promote_conductor(a,b)
   res=Cyc_(dropzeros!(a.d+b.d))
-# n=lcm(conductor(a),conductor(b))
-# na=div(n,conductor(a))
-# nb=div(n,conductor(b))
-# res=zerocyc(eltype(a.d),n)
-# for (i,va) in pairs(a) addroot(res,n,na*i,va) end
-# for (i,vb) in pairs(b) addroot(res,n,nb*i,vb) end
-# res=Cyc(n,res)
-else
-  n=lcm(conductor(a),conductor(b))
-  res=eltype(a.d)[]
-  na=div(n,conductor(a))
-  nb=div(n,conductor(b))
-  for (i,va) in pairs(a) addroot(res,n,na*i,va) end
-  for (i,vb) in pairs(b) addroot(res,n,nb*i,vb) end
-  res=Cyc(n,MM(res))
 end
   @static if !lazy lower!(res) end
   res
@@ -976,7 +960,7 @@ end
 
 function Base.:*(c::Cyc,a::Real)
 if impl==:MM
-  Cyc(iszero(a) ? 1 : conductor(c),c.d*a)
+  isone(a) ? Cyc{promote_type(valtype(c),typeof(a))}(c) : Cyc(iszero(a) ? 1 : conductor(c),c.d*a)
 else
   res=c.d*a
   iszero(a) ? zero(Cyc{eltype(res)}) : Cyc(conductor(c),res)
@@ -984,8 +968,8 @@ end
 end
 Base.:*(a::Real,c::Cyc)=c*a
 
-Base.://(a::Cyc,c::Cyc)=a*inv(c*1//1)
-Base.://(a::Real,c::Cyc)=a*inv(c*1//1)
+Base.://(a::Cyc,c::Cyc)=a*inv(Cyc{promote_type(valtype(c),Rational{Int})}(c))
+Base.://(a::Real,c::Cyc)=a*inv(Cyc{promote_type(valtype(c),Rational{Int})}(c))
 Base.://(c::Root1,a::Real)=Cyc(c)//a
 Base.://(a::Real,c::Root1)=a//Cyc(c)
 Base.://(c::Root1,a::Cyc)=Cyc(c)//a
