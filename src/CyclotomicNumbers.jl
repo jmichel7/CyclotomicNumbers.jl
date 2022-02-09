@@ -940,7 +940,21 @@ end
 end
 
 Base.:-(a::Cyc)=Cyc(conductor(a),-a.d)
-Base.:-(a::Cyc,b::Cyc)=a+(-b)
+
+function Base.:-(x::Cyc,y::Cyc)
+  a,b=promote(x,y)
+  if obviouslyzero(a) return -b
+  elseif obviouslyzero(b) return a
+  end
+  a,b=promote_conductor(a,b)
+if impl==:vec || impl==:MM
+  res=Cyc(conductor(a),a.d-b.d)
+elseif impl==:svec
+  res=Cyc_(dropzeros!(a.d-b.d))
+end
+  @static if !lazy lower!(res) end
+  res
+end
 
 if impl==:vec || impl==:svec
 Base.://(c::Cyc,a::Real)=Cyc(conductor(c),c.d.//a)
@@ -959,12 +973,10 @@ end
 end
 
 function Base.:*(c::Cyc,a::Real)
-if impl==:MM
-  isone(a) ? Cyc{promote_type(valtype(c),typeof(a))}(c) : Cyc(iszero(a) ? 1 : conductor(c),c.d*a)
-else
-  res=c.d*a
-  iszero(a) ? zero(Cyc{eltype(res)}) : Cyc(conductor(c),res)
-end
+  # the check for one saves a lot of time in some applications
+  if isone(a) return Cyc{promote_type(valtype(c),typeof(a))}(c) end
+  if iszero(a) return zero(Cyc{promote_type(valtype(c),typeof(a))}) end
+  Cyc(conductor(c),c.d*a)
 end
 Base.:*(a::Real,c::Cyc)=c*a
 
