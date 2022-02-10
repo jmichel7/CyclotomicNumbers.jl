@@ -252,8 +252,8 @@ julia> function testmat(p)
        end
 testmat (generic function with 1 method)
 
-julia> @btime CyclotomicNumbers.testmat(12)^2;  # on Julia 1.7
-  313.911 ms (3877297 allocations: 280.96 MiB)
+julia> @btime CyclotomicNumbers.testmat(12)^2;  # on Julia 1.7.2
+  287.781 ms (3774785 allocations: 279.66 MiB)
 ```
 The equivalent in GAP:
 
