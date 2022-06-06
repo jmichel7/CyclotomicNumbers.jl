@@ -12,35 +12,30 @@
 
 
 
-This  package deals with cyclotomic numbers,  the complex numbers which are linear  combinations  of  roots  of  unity  with  rational coefficients. It depends on the packages `ModuleElt` and `Primes`.
+This  package deals with cyclotomic numbers,  the complex numbers which are linear  combinations  of  roots  of  unity  with  rational coefficients. It depends on the packages `ModuleElt` and `Primes`. It can also handle linear combinations  of roots of  unity with coefficients  in an arbitrary ring of real  numbers like  `Floats`. The  cyclotomic numbers  can be  converted to `Complex` numbers.
 
-The  cyclotomic numbers form a field, the  cyclotomic field. It is also the maximal  extension of the rationals which  has an abelian Galois group. Its ring of integers are the sums of unity with integral coefficients.
+The  cyclotomic numbers form a field, the  cyclotomic field. It is also the maximal  extension of the rationals which  has an abelian Galois group. Its ring of integers are the sums of roots of unity with integer coefficients.
 
-Cyclotomics are very important for finite groups, since character values of finite groups are cyclotomic integers.
+Cyclotomic  numbers are very  important for finite  groups, since character values of finite groups are cyclotomic integers.
 
-This package is a port of the GAP implementation of cyclotomics, which uses a  normal form  given by  writing them  in the  Zumbroich basis.  This form allows to find the smallest Cyclotomic field which contains a given number, and  decide in particular  if a cyclotomic  is zero. Let ζₙ=exp(2iπ/n). The Zumbroich  basis is  a particular  subset of  size φ(n) of 1,ζₙ,ζₙ²,…,ζₙⁿ⁻¹ which forms a basis of ℚ (ζₙ).
-
-I  started  this  file  by  porting  Christian  Stump's Sage code, which is simpler  to understand than GAP's C  code. The reference for the algorithms is
+This package is a port of the GAP implementation of cyclotomics, which uses a  normal form  given by  writing them  in the  Zumbroich basis.  This form allows to find the smallest Cyclotomic field which contains a given number, and  decide in particular  if a cyclotomic  is zero. Let ζₙ=exp(2iπ/n). The Zumbroich  basis is  a particular  subset of  size φ(n) of 1,ζₙ,ζₙ²,…,ζₙⁿ⁻¹ which forms a basis of ℚ (ζₙ).  The reference is
 
 T. Breuer, Integral bases for subfields of cyclotomic fields AAECC 8 (1997)
 
-As does GAP, I lower automatically numbers after each computation (that is, reduce  them to the smallest cyclotomic field where they belong). currently the  code is somewhat  slower (depending on  the operation it  has the same speed or is slower up to 50%) than the C code in GAP but there are probably opportunities to optimize that I missed.
+I  started  this  file  by  porting  Christian  Stump's Sage code, which is simpler  to understand than GAP's C  code. 
+
+As GAP does, I lower automatically numbers after each computation (that is, reduce  them to the smallest cyclotomic field where they belong). Currently the  code is somewhat  slower (depending on  the operation it  has the same speed or is slower up to 50%) than the C code in GAP but there are probably opportunities to optimize that I missed.
 
 What GAP does which I do not do is convert automatically a Cyclotomic which is  rational to a Rational,  a Rational which is  integral to an Integer, a BigInt  which is  small to  an Int,  etc… This  is a tremendously important optimization  but because of type stability in Julia it needs a new type of number to be added to Julia, which I am not competent enough to try.
 
 This package is similar (and mostly compatible) with Marek Kaluba's package `Cyclotomics`,  whose existence I discovered after writing this package. We discussed merging them but concluded it would be a lot of work for benefits which are not clear currently. Some differences are:
 
-  * I define two types in this  package: `Root1` represents a root of unity,
-
-and  `Cyc` a cyclotomic number. The advantage of having a separate type for roots of unity is that computations are very fast for them, of which I take advantage  in the package `CycPol` for polynomials whose zeros are roots of unity.
-
-  * In his package numbers are not systematically lowered but only on demand
-
-(like  for  printing).  this  speeds  up  some  computations  by  a  factor approaching  2, but it also makes some computations I had to do infeasible, like  the following one (which if  not lowering involves too large fields); the answer is `-36ζ₃²`:
+  * I define two types in this  package: `Root1` represents a root of unity, and  `Cyc` a cyclotomic number. The advantage of having a separate type for  roots of  unity is  that computations  are very  fast for them, of which  I take advantage  in the package  `CycPol` for polynomials whose zeros are roots of unity.
+  * In Kaluba's package  numbers are not  systematically lowered but only on demand  (like  for  printing).  this  speeds  up some computations by a factor  approaching 2, but it also makes  some computations I had to do infeasible,  like the following one (which if not lowering involves too large fields); the answer is `-36ζ₃²`:
 
 ```julia-rep1
-julia> prod(x->1-x,[E(3),E(3,2),E(6),E(6,5),E(8),E(8),E(8,5),E(8,7),E(9,2),E(9,5),
-E(9,8),E(12,7),E(12,11),E(16),E(16,3),E(16,5),E(16,9),E(16,11),E(16,13),
+julia> prod(x->1-x,[E(3),E(3,2),E(6),E(6,5),E(8),E(8),E(8,5),E(8,7),E(9,2),
+E(9,5),E(9,8),E(12,7),E(12,11),E(16),E(16,3),E(16,5),E(16,9),E(16,11),E(16,13),
 E(18,5),E(18,5),E(18,11),E(18,11),E(18,17),E(18,17),E(21,2),E(21,5),E(21,8),
 E(21,11),E(21,17),E(21,20),
 E(27,2),E(27,5),E(27,8),E(27,11),E(27,14),E(27,17),E(27,20),E(27,23),E(27,26),
@@ -63,9 +58,9 @@ E(204,35),E(204,47),E(204,59),E(204,71),E(204,83),E(204,95),E(204,107),
 E(204,131),E(204,143),E(204,155),E(204,167),E(204,179),E(204,191),E(204,203)])
 ```
 
-If  you `develop` my package it is easy to use the strategy of not lowering or  to use alternate implementations like  sparse vectors or dense vectors, like   `Cyclotomics`  –-  I  prepared  boolean  flags  to  choose  various implementations   in  the  code.  I  decided  on  the  implementation  with `ModuleElts` and systematic lowering as giving the best results.
+If you `develop` my package it is easy to use the strategy of lowering only on  demand or to use alternate implementations like dense vectors or sparse vectors (like `Cyclotomics`) –- I prepared boolean flags to choose various implementations in the code. I choosed the implementation with `ModuleElts` and systematic lowering as giving the best results.
 
-The main way to build a Cyclotomic number is to use the function `E(n,k=1)` which constructs the `Root1` `ζₙᵏ`, and to make linear combinations of such numbers with integer or rational coefficients.
+The main way to build a Cyclotomic number is to use the function `E(n,k=1)` which   constructs  the  `Root1`  equal  to   `ζₙᵏ`,  and  to  make  linear combinations of such numbers.
 
 **Examples**
 
@@ -78,15 +73,15 @@ Cyc{Int64}: ζ₁₂⁴-ζ₁₂⁷-ζ₁₂¹¹
 ```
 
 ```julia-rep1
-julia> print(E(3)+E(4)) # otherwise give output which can be read back in
+julia> print(E(3)+E(4)) # otherwise give output which can be parsed back
 E(12,4)-E(12,7)-E(12,11)
 ```
 
 ```julia-repl
-julia> E(12,11)-E(12,7) # square roots of integers are recognized
+julia> E(12,11)-E(12,7) # square roots of integers are recognized on output
 Cyc{Int64}: √3
 
-# but you can prevent that
+# but you can prevent that recognition
 julia> repr(E(12,11)-E(12,7),context=(:limit=>true,:quadratic=>false))
 "-ζ₁₂⁷+ζ₁₂¹¹"
 
@@ -106,7 +101,7 @@ ERROR: InexactError: convert(Int64, E(4))
 ```
 
 ```julia-repl
-julia> inv(1+E(4)) # like for Ints inverse involves floats
+julia> inv(1+E(4)) # like for Integers inverse involves floats
 Cyc{Float64}: 0.5-0.5ζ₄
 
 julia> 1//(1+E(4))  # but not written this way
@@ -127,13 +122,13 @@ julia> Rational{Int}(real(E(3)))
 julia> imag(E(3))  # imaginary part
 Cyc{Rational{Int64}}: √3/2
 
-julia> c=Cyc(E(9))   # an effect of the Zumbroich basis
+julia> c=Cyc(E(9))   # the normal form in the Zumbroich basis has two terms
 Cyc{Int64}: -ζ₉⁴-ζ₉⁷
 
-julia> Root1(c) # you can convert back to Root1 if possible
+julia> Root1(c) #  but you can convert back to Root1 if possible
 Root1: ζ₉
 
-julia> Root1(1+E(4)) # the constructor returns nothing for a non-root
+julia> Root1(1+E(4)) # the constructor Root1 returns nothing for a non-root
 ```
 
 The  group of  roots of  unity is  isomorphic to  ℚ /ℤ  , thus  `Root1` are represented internally by a rational number in `[0,1[`.
@@ -142,9 +137,13 @@ The  group of  roots of  unity is  isomorphic to  ℚ /ℤ  , thus  `Root1` are 
 julia> Root1(;r=1//4) # this constructor ensures the fraction is in [0,1[
 Root1: ζ₄
 
-julia> c=E(4)*E(3) # faster computation if staying inside roots of unity
+julia> c=E(4)*E(3) # fast computation if staying inside roots of unity
 Root1: ζ₁₂⁷
+```
 
+`Root1` have the same operations as `Cyc`, but are first converted to `Cyc` for  any  operation  other  than  `one,  isone,  *, ^, inv, conj, /, //`. A `Root1`  can be  raised to  a `Rational`  power, which  extracts a  root if needed.  A `Root1` can be  taken apart using `order`  and `exponent` –- if `a`  and `b` are prime to each other,  `a` is the order of `E(a,b)` and `b` (taken  mod `a`) is the exponent. Note  that the order is not the conductor since `E(6)==-E(3)` has order 6 and conductor 3.
+
+```julia-repl
 julia> c=Complex{Float64}(E(3))  # convert to Complex{float} is sometimes useful
 -0.4999999999999999 + 0.8660254037844387im
 ```
@@ -160,7 +159,6 @@ Cyc{Rational{Int64}}: √-3/2
 
 julia> E(3)+im
 Cyc{Int64}: ζ₁₂⁴-ζ₁₂⁷-ζ₁₂¹¹
-
 ```
 
 The  function  `complex`  converts  a  `Cyc{T}`  to  a  `Complex{T}` if the conductor is 1 or 4, to a `Complex{float(T)}` otherwise.
@@ -173,14 +171,16 @@ julia> complex(E(3))
 -0.4999999999999999 + 0.8660254037844387im
 ```
 
-`Cyc`s have methods `copy, hash, ==, cmp, isless` (total order) so they can be  keys in hashes or  elements of sets. Cyclotomics  which are integers or rationals  compare  correctly  to  `Real`s  (contrary  to  irrational  real `Cyc`s):
+`Cyc`s have methods `copy, hash, ==, cmp, isless` (total order) so they can be  keys in hashes, elements of sets,  and can be sorted. Cyclotomics which are  integers  or  rationals  compare  correctly  to `Real`s (this does not extend to irrational real `Cyc`s):
 
 ```julia-repl
 julia> -1<Cyc(0)<1
 true
 ```
 
-You  can pick apart a cyclotomic in various ways. The fastest is to use the iterator  `pairs` which, for a cyclotomic  `a` of conductor `e` iterates on the  pairs `(i,c)` such that  `a` has a non-zero  coefficient `c` on `ζₑⁱ`. You  can also get the coefficient `ζₑⁱ` by indexing `a[i]` but it is slower than  `pairs` to iterate on coefficients this  way. Finally you can get the vector of all coefficients by `coefficients`.
+`Cyc`s have the operations `+, -, *, /, //, inv, ^, conj, abs2, abs, image, real, reim, isinteger, isreal, one, isone, zero, iszero, complex, adjoint`. Cyclotomics   with  rational  or  integer  coefficients  have  the  methods `numerator`  and  `denominator`:  a  `Cyc`  `x`  is a Cyclotomic integer if `denominator(x)==1`   and  then  `numerator(x)`   gives  the  corresponding `Cyc{<:Integer}`.
+
+You  can pick apart a cyclotomic in various ways. The fastest is to use the iterator  `pairs` which, for a cyclotomic  `a` of conductor `e` iterates on the  pairs `(i,c)` such that  `a` has a non-zero  coefficient `c` on `ζₑⁱ`. You  can also get  the coefficient of  `ζₑⁱ` as `a[i]`  but it is slower to iterate  on coefficients  this way.  Finally you  can get (efficiently) the vector of all coefficients by `coefficients`.
 
 ```julia-repl
 julia> a=E(3)+E(4)
@@ -214,7 +214,7 @@ julia> valtype(a) # the type of the coefficients of a
 Int64
 ```
 
-For more information see the methods denominator, Quadratic, galois, root, conjugates.
+For more information see the docstring for the methods Quadratic,  galois, root, conjugates.
 
 Finally, a benchmark:
 
@@ -240,7 +240,7 @@ end;
 testmat(12)^2 takes 0.31s in GAP3, 0.22s in GAP4
 
 
-<a target='_blank' href='https://github.com/jmichel7/CyclotomicNumbers.jl/blob/d917c7e444d83120ecc6baea67ab9ff3cf4de721/src/CyclotomicNumbers.jl#L1-L266' class='documenter-source'>source</a><br>
+<a target='_blank' href='https://github.com/jmichel7/CyclotomicNumbers.jl/blob/860a466d74f5885448cee6e47684c0f9ba7d1e32/src/CyclotomicNumbers.jl#L1-L279' class='documenter-source'>source</a><br>
 
 <a id='CyclotomicNumbers.E' href='#CyclotomicNumbers.E'>#</a>
 **`CyclotomicNumbers.E`** &mdash; *Function*.
@@ -250,7 +250,7 @@ testmat(12)^2 takes 0.31s in GAP3, 0.22s in GAP4
 `E(n,p=1)` returns the `Root1` equal to `ζₙᵖ`
 
 
-<a target='_blank' href='https://github.com/jmichel7/CyclotomicNumbers.jl/blob/d917c7e444d83120ecc6baea67ab9ff3cf4de721/src/CyclotomicNumbers.jl#L353' class='documenter-source'>source</a><br>
+<a target='_blank' href='https://github.com/jmichel7/CyclotomicNumbers.jl/blob/860a466d74f5885448cee6e47684c0f9ba7d1e32/src/CyclotomicNumbers.jl#L359' class='documenter-source'>source</a><br>
 
 <a id='CyclotomicNumbers.Root1' href='#CyclotomicNumbers.Root1'>#</a>
 **`CyclotomicNumbers.Root1`** &mdash; *Type*.
@@ -259,7 +259,7 @@ testmat(12)^2 takes 0.31s in GAP3, 0.22s in GAP4
 
 `Root1(c)`
 
-`c` should be a cyclotomic number (a `Cyc`), or a `Real`. `Root1` returns a `Root1` object containing the rational `e/n` with `0≤e<n` (that is, `e/n∈ ℚ /ℤ`) if `c==E(n,e)`, and `nothing` if `c` is not a root of unity.
+`c`  should be a cyclotomic number (a  `Cyc`), or a `Real`. `Root1` returns `E(n,e)` if `c==E(n,e)`, and `nothing` if `c` is not a root of unity.
 
 ```julia-repl
 julia> r=Root1(-E(9,2)-E(9,5))
@@ -271,14 +271,14 @@ julia> order(r)
 julia> exponent(r)
 8
 
-julia> Cyc(r)
+julia> Cyc(r) # the Zumbroich normal form is a sum of 2 roots of unity
 Cyc{Int64}: -ζ₉²-ζ₉⁵
 
 julia> Root1(-E(9,4)-E(9,5)) # nothing
 ```
 
 
-<a target='_blank' href='https://github.com/jmichel7/CyclotomicNumbers.jl/blob/d917c7e444d83120ecc6baea67ab9ff3cf4de721/src/CyclotomicNumbers.jl#L1129-L1151' class='documenter-source'>source</a><br>
+<a target='_blank' href='https://github.com/jmichel7/CyclotomicNumbers.jl/blob/860a466d74f5885448cee6e47684c0f9ba7d1e32/src/CyclotomicNumbers.jl#L1149-L1170' class='documenter-source'>source</a><br>
 
 <a id='CyclotomicNumbers.conductor' href='#CyclotomicNumbers.conductor'>#</a>
 **`CyclotomicNumbers.conductor`** &mdash; *Function*.
@@ -298,7 +298,7 @@ julia> conductor([E(3),1//2,E(4)])
 ```
 
 
-<a target='_blank' href='https://github.com/jmichel7/CyclotomicNumbers.jl/blob/d917c7e444d83120ecc6baea67ab9ff3cf4de721/src/CyclotomicNumbers.jl#L471-L485' class='documenter-source'>source</a><br>
+<a target='_blank' href='https://github.com/jmichel7/CyclotomicNumbers.jl/blob/860a466d74f5885448cee6e47684c0f9ba7d1e32/src/CyclotomicNumbers.jl#L477-L491' class='documenter-source'>source</a><br>
 
 <a id='CyclotomicNumbers.coefficients' href='#CyclotomicNumbers.coefficients'>#</a>
 **`CyclotomicNumbers.coefficients`** &mdash; *Function*.
@@ -324,7 +324,7 @@ julia> coefficients(Cyc(E(9)))
 ```
 
 
-<a target='_blank' href='https://github.com/jmichel7/CyclotomicNumbers.jl/blob/d917c7e444d83120ecc6baea67ab9ff3cf4de721/src/CyclotomicNumbers.jl#L514-L533' class='documenter-source'>source</a><br>
+<a target='_blank' href='https://github.com/jmichel7/CyclotomicNumbers.jl/blob/860a466d74f5885448cee6e47684c0f9ba7d1e32/src/CyclotomicNumbers.jl#L520-L539' class='documenter-source'>source</a><br>
 
 <a id='Base.denominator' href='#Base.denominator'>#</a>
 **`Base.denominator`** &mdash; *Function*.
@@ -336,7 +336,7 @@ julia> coefficients(Cyc(E(9)))
 returns the smallest `d` such that `d*c` has integral coefficients (thus is an algebraic integer).
 
 
-<a target='_blank' href='https://github.com/jmichel7/CyclotomicNumbers.jl/blob/d917c7e444d83120ecc6baea67ab9ff3cf4de721/src/CyclotomicNumbers.jl#L544-L549' class='documenter-source'>source</a><br>
+<a target='_blank' href='https://github.com/jmichel7/CyclotomicNumbers.jl/blob/860a466d74f5885448cee6e47684c0f9ba7d1e32/src/CyclotomicNumbers.jl#L550-L555' class='documenter-source'>source</a><br>
 
 <a id='CyclotomicNumbers.galois' href='#CyclotomicNumbers.galois'>#</a>
 **`CyclotomicNumbers.galois`** &mdash; *Function*.
@@ -356,7 +356,7 @@ true
 ```
 
 
-<a target='_blank' href='https://github.com/jmichel7/CyclotomicNumbers.jl/blob/d917c7e444d83120ecc6baea67ab9ff3cf4de721/src/CyclotomicNumbers.jl#L1063-L1075' class='documenter-source'>source</a><br>
+<a target='_blank' href='https://github.com/jmichel7/CyclotomicNumbers.jl/blob/860a466d74f5885448cee6e47684c0f9ba7d1e32/src/CyclotomicNumbers.jl#L1081-L1093' class='documenter-source'>source</a><br>
 
 <a id='CyclotomicNumbers.conjugates' href='#CyclotomicNumbers.conjugates'>#</a>
 **`CyclotomicNumbers.conjugates`** &mdash; *Function*.
@@ -375,7 +375,7 @@ julia> conjugates(1+root(5))
 ```
 
 
-<a target='_blank' href='https://github.com/jmichel7/CyclotomicNumbers.jl/blob/d917c7e444d83120ecc6baea67ab9ff3cf4de721/src/CyclotomicNumbers.jl#L1092-L1104' class='documenter-source'>source</a><br>
+<a target='_blank' href='https://github.com/jmichel7/CyclotomicNumbers.jl/blob/860a466d74f5885448cee6e47684c0f9ba7d1e32/src/CyclotomicNumbers.jl#L1110-L1122' class='documenter-source'>source</a><br>
 
 <a id='CyclotomicNumbers.Quadratic' href='#CyclotomicNumbers.Quadratic'>#</a>
 **`CyclotomicNumbers.Quadratic`** &mdash; *Type*.
@@ -397,7 +397,7 @@ julia> Quadratic(1+E(5))
 ```
 
 
-<a target='_blank' href='https://github.com/jmichel7/CyclotomicNumbers.jl/blob/d917c7e444d83120ecc6baea67ab9ff3cf4de721/src/CyclotomicNumbers.jl#L1195-L1211' class='documenter-source'>source</a><br>
+<a target='_blank' href='https://github.com/jmichel7/CyclotomicNumbers.jl/blob/860a466d74f5885448cee6e47684c0f9ba7d1e32/src/CyclotomicNumbers.jl#L1214-L1230' class='documenter-source'>source</a><br>
 
 <a id='CyclotomicNumbers.root' href='#CyclotomicNumbers.root'>#</a>
 **`CyclotomicNumbers.root`** &mdash; *Function*.
@@ -420,7 +420,7 @@ Cyc{Int64}: √3
 ```
 
 
-<a target='_blank' href='https://github.com/jmichel7/CyclotomicNumbers.jl/blob/d917c7e444d83120ecc6baea67ab9ff3cf4de721/src/CyclotomicNumbers.jl#L1289-L1307' class='documenter-source'>source</a><br>
+<a target='_blank' href='https://github.com/jmichel7/CyclotomicNumbers.jl/blob/860a466d74f5885448cee6e47684c0f9ba7d1e32/src/CyclotomicNumbers.jl#L1308-L1326' class='documenter-source'>source</a><br>
 
 <a id='CyclotomicNumbers.Elist' href='#CyclotomicNumbers.Elist'>#</a>
 **`CyclotomicNumbers.Elist`** &mdash; *Function*.
@@ -434,7 +434,7 @@ expresses  ζₙⁱ  in  zumbroich_basis(n):  it  is  a  sum  of some ζₙʲ wi
 Should only be called with i∈ 0:n-1
 
 
-<a target='_blank' href='https://github.com/jmichel7/CyclotomicNumbers.jl/blob/d917c7e444d83120ecc6baea67ab9ff3cf4de721/src/CyclotomicNumbers.jl#L684-L693' class='documenter-source'>source</a><br>
+<a target='_blank' href='https://github.com/jmichel7/CyclotomicNumbers.jl/blob/860a466d74f5885448cee6e47684c0f9ba7d1e32/src/CyclotomicNumbers.jl#L690-L699' class='documenter-source'>source</a><br>
 
 <a id='CyclotomicNumbers.zumbroich_basis' href='#CyclotomicNumbers.zumbroich_basis'>#</a>
 **`CyclotomicNumbers.zumbroich_basis`** &mdash; *Function*.
@@ -446,7 +446,7 @@ CyclotomicNumbers.zumbroich_basis(n::Int)
 returns  the Zumbroich basis of  ℚ (ζₙ) as the  vector of i in 0:n-1 such   that `ζₙⁱ` is in the basis.
 
 
-<a target='_blank' href='https://github.com/jmichel7/CyclotomicNumbers.jl/blob/d917c7e444d83120ecc6baea67ab9ff3cf4de721/src/CyclotomicNumbers.jl#L490-L495' class='documenter-source'>source</a><br>
+<a target='_blank' href='https://github.com/jmichel7/CyclotomicNumbers.jl/blob/860a466d74f5885448cee6e47684c0f9ba7d1e32/src/CyclotomicNumbers.jl#L496-L501' class='documenter-source'>source</a><br>
 
 <a id='CyclotomicNumbers.prime_residues' href='#CyclotomicNumbers.prime_residues'>#</a>
 **`CyclotomicNumbers.prime_residues`** &mdash; *Function*.
@@ -456,7 +456,7 @@ returns  the Zumbroich basis of  ℚ (ζₙ) as the  vector of i in 0:n-1 such  
 `CyclotomicNumbers.prime_residues(n)` the numbers less than `n` and prime to `n` 
 
 
-<a target='_blank' href='https://github.com/jmichel7/CyclotomicNumbers.jl/blob/d917c7e444d83120ecc6baea67ab9ff3cf4de721/src/CyclotomicNumbers.jl#L317' class='documenter-source'>source</a><br>
+<a target='_blank' href='https://github.com/jmichel7/CyclotomicNumbers.jl/blob/860a466d74f5885448cee6e47684c0f9ba7d1e32/src/CyclotomicNumbers.jl#L330' class='documenter-source'>source</a><br>
 
 <a id='CyclotomicNumbers.factor' href='#CyclotomicNumbers.factor'>#</a>
 **`CyclotomicNumbers.factor`** &mdash; *Function*.
@@ -466,17 +466,17 @@ returns  the Zumbroich basis of  ℚ (ζₙ) as the  vector of i in 0:n-1 such  
 `CyclotomicNumbers.factor(n::Integer)` make `Primes.factor` fast for small Ints by memoizing it
 
 
-<a target='_blank' href='https://github.com/jmichel7/CyclotomicNumbers.jl/blob/d917c7e444d83120ecc6baea67ab9ff3cf4de721/src/CyclotomicNumbers.jl#L330-L333' class='documenter-source'>source</a><br>
+<a target='_blank' href='https://github.com/jmichel7/CyclotomicNumbers.jl/blob/860a466d74f5885448cee6e47684c0f9ba7d1e32/src/CyclotomicNumbers.jl#L343-L346' class='documenter-source'>source</a><br>
 
 <a id='CyclotomicNumbers.modZ' href='#CyclotomicNumbers.modZ'>#</a>
 **`CyclotomicNumbers.modZ`** &mdash; *Function*.
 
 
 
-`modZ(x::Rational)` returns `x mod ℤ` as a rational in `[0,1[`
+`modZ(x::Rational{<:Integer})` returns `x mod ℤ` as a rational in `[0,1[`
 
 
-<a target='_blank' href='https://github.com/jmichel7/CyclotomicNumbers.jl/blob/d917c7e444d83120ecc6baea67ab9ff3cf4de721/src/CyclotomicNumbers.jl#L349' class='documenter-source'>source</a><br>
+<a target='_blank' href='https://github.com/jmichel7/CyclotomicNumbers.jl/blob/860a466d74f5885448cee6e47684c0f9ba7d1e32/src/CyclotomicNumbers.jl#L355' class='documenter-source'>source</a><br>
 
 <a id='Base.numerator-Union{Tuple{Cyc{<:Union{Rational{T}, T}}}, Tuple{T}} where T<:Integer' href='#Base.numerator-Union{Tuple{Cyc{<:Union{Rational{T}, T}}}, Tuple{T}} where T<:Integer'>#</a>
 **`Base.numerator`** &mdash; *Method*.
@@ -488,5 +488,5 @@ returns  the Zumbroich basis of  ℚ (ζₙ) as the  vector of i in 0:n-1 such  
 returns `denominator(c)*c` as a cyclotomic over the integers.
 
 
-<a target='_blank' href='https://github.com/jmichel7/CyclotomicNumbers.jl/blob/d917c7e444d83120ecc6baea67ab9ff3cf4de721/src/CyclotomicNumbers.jl#L552-L556' class='documenter-source'>source</a><br>
+<a target='_blank' href='https://github.com/jmichel7/CyclotomicNumbers.jl/blob/860a466d74f5885448cee6e47684c0f9ba7d1e32/src/CyclotomicNumbers.jl#L558-L562' class='documenter-source'>source</a><br>
 
