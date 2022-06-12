@@ -338,13 +338,7 @@ function prime_residues(n)
   (1:n-1)[pp]
 end
 
-import Primes
-const dict_factor=Dict(2=>Primes.factor(Dict,2))
-"""
-`CyclotomicNumbers.factor(n::Integer)`
-make `Primes.factor` fast for small Ints by memoizing it
-"""
-factor(n::Integer)=get!(()->Primes.factor(Dict,n),dict_factor,n)
+using Primes: eachfactor, factor
 
 #------------------------ type Root1 ----------------------------------
 struct Root1 <: Number # E(c,n)
@@ -508,7 +502,7 @@ function zumbroich_basis(n::Int)
     else return div(1-p,2):div(p-1,2)
     end
   end
-  nfact=factor(n)
+  nfact=eachfactor(n)
   res=
   let J=J
     [[div(n*i,p^k) for i in J(k-1,p)] for (p,np) in nfact for k in 1:np]
@@ -701,7 +695,7 @@ function Elist(n::Int,i::Int)
   get!(Elist_dict,(n,i)) do
     mp=Int[]
     j=i
-    for (p,np) in factor(n)
+    for (p,np) in eachfactor(n)
       f=p^np
       m=div(n,f)
       cnt=mod(j*invmod(m,f),f)
@@ -1000,7 +994,7 @@ elseif impl==:vec
 elseif impl==:svec
   if obviouslyzero(c) return Cyc!(c,1,spzeros(valtype(c),1)) end
 end
-  for (p,np) in factor(n)
+  for (p,np) in eachfactor(n)
     m=div(n,p)
 if impl==:vec
     kk=filter(i->c.d[i]!=0,eachindex(c.d))
@@ -1016,7 +1010,7 @@ if impl==:vec
       cnt=zeros(Int,m)
       for k in kk cnt[1+(k%m)]+=1 end
       if !all(x->iszero(x) || x==p-1,cnt) continue end
-      u=findall(!iszero,cnt).-1
+      u=(0:length(cnt)-1)[cnt.!=0]
       kk=@. div(u+m*mod(-u,p)*invmod(m,p),p)%m
       if !issorted(kk) sort!(kk) end
       v=zeros(valtype(c),m)
@@ -1041,7 +1035,7 @@ elseif impl==:svec
       cnt=zeros(Int,m)
       for k in kk cnt[1+(k-1)%m]+=1 end
       if !all(x->iszero(x) || x==p-1,cnt) continue end
-      u=findall(!iszero,cnt).-1
+      u=(0:length(cnt)-1)[cnt.!=0]
       kk=@. div(u+m*mod(-u,p)*invmod(m,p),p)%m
       if !issorted(kk) sort!(kk) end
       let c=c, kk=kk, p=p, m=m
@@ -1061,7 +1055,9 @@ elseif impl==:MM
       cnt=zeros(Int,m)
       for (k,v) in c.d cnt[1+(k%m)]+=1 end
       if !all(x->iszero(x) || x==p-1,cnt) continue end
-      u=findall(!iszero,cnt).-1
+  #   u=findall(!iszero,cnt).-1 # next line is quite faster
+  #   u=(0:length(cnt)-1)[cnt.!=0]
+      u=[i-1 for (i,x) in pairs(cnt) if !iszero(x)]
       kk=@. div(u+m*mod(-u,p)*invmod(m,p),p)%m
       if p==2  
         return lower!(Cyc!(c,m,MM(k=>c.d[(k*p)%n] for k in kk)))
