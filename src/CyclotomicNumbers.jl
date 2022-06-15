@@ -338,7 +338,14 @@ function prime_residues(n)
   (1:n-1)[pp]
 end
 
-using Primes: eachfactor, factor
+using Primes: Primes
+
+if isdefined(Primes,:eachfactor)
+  const EF=Primes.eachfactor
+else
+  const fact_dict=Dict(2=>Primes.factor(2))
+  EF(n)=get!(()->Primes.factor(n),fact_dict,n)
+end
 
 #------------------------ type Root1 ----------------------------------
 struct Root1 <: Number # E(c,n)
@@ -502,7 +509,7 @@ function zumbroich_basis(n::Int)
     else return div(1-p,2):div(p-1,2)
     end
   end
-  nfact=eachfactor(n)
+  nfact=EF(n)
   res=
   let J=J
     [[div(n*i,p^k) for i in J(k-1,p)] for (p,np) in nfact for k in 1:np]
@@ -695,7 +702,7 @@ function Elist(n::Int,i::Int)
   get!(Elist_dict,(n,i)) do
     mp=Int[]
     j=i
-    for (p,np) in eachfactor(n)
+    for (p,np) in EF(n)
       f=p^np
       m=div(n,f)
       cnt=mod(j*invmod(m,f),f)
@@ -725,7 +732,7 @@ function Elist(n::Int,i::Int)
 end
 
 # p iterator of pairs i=>c meaning c*E(n,i)
-# This constructor is not in API since the result may neeed lowering
+# This constructor is not in API since the result may or may not need lowering
 function Cyc(n::Integer,::Type{T},p) where T 
   res=if     impl==:vec  zeros(T,n)
       elseif impl==:svec spzeros(T,n)
@@ -738,7 +745,10 @@ function Cyc(n::Integer,::Type{T},p) where T
     else @inbounds view(res,v.+1).+=c
     end
   end
-  Cyc(n,impl==:MM ? MM(res) : impl==:svec ? dropzeros!(res) : res)
+if impl==:MM Cyc(n,MM(res))
+elseif impl==:svec Cyc(n,dropzeros!(res))
+else Cyc(n,res)
+end
 end
   
 function Cyc(a::Root1) # the result is guaranteed lowered
@@ -873,19 +883,19 @@ function Base.show(io::IO, p::Cyc)
 end
 
 # write a,b in common field Q(ζ_n)
-function promote_conductor(a::Cyc,b::Cyc)
+function promote_conductor(a::Cyc{T},b::Cyc{T})where T
   if conductor(a)==conductor(b) return (a, b) end
   n=lcm(conductor(a),conductor(b))
   if n!=conductor(a)
     m=div(n,conductor(a))
     let m=m
-    a=Cyc(n,valtype(a),i*m=>v for (i,v) in pairs(a))
+      a=Cyc(n,valtype(a),i*m=>v for (i,v) in pairs(a))
     end
   end
   if n!=conductor(b)
     m=div(n,conductor(b))
-    let m=m
-    b=Cyc(n,valtype(b),i*m=>v for (i,v) in pairs(b))
+    let m=m # the eltype of next iterator is Any!
+      b=Cyc(n,valtype(b),i*m=>v for (i,v) in pairs(b))
     end
   end
   (a,b)
@@ -994,7 +1004,7 @@ elseif impl==:vec
 elseif impl==:svec
   if obviouslyzero(c) return Cyc!(c,1,spzeros(valtype(c),1)) end
 end
-  for (p,np) in eachfactor(n)
+  for (p,np) in EF(n)
     m=div(n,p)
 if impl==:vec
     kk=filter(i->c.d[i]!=0,eachindex(c.d))
@@ -1128,7 +1138,7 @@ end
 conjugates(c::Union{Rational{<:Integer},Integer})=[c]
 
 function Base.inv(c::Cyc)
-  if conductor(c)==1 return Cyc(1/num(c)) end
+  if conductor(c)==1 return Cyc(inv(num(c))) end
   l=conjugates(c)
   r=l[2]
   for t in l[3:end] r=*(r,t;reduce=false) end
@@ -1228,7 +1238,7 @@ function Quadratic(c::Cyc)
   den=denominator(c)
   c=numerator(c)
   if conductor(c)==1 return Quadratic(num(c),0,1,den) end
-  f=factor(conductor(c))
+  f=Primes.factor(conductor(c))
   v2=get(f,2,0)
   if v2>3 || (v2==2 && any(p->p[1]!=2 && p[2]!=1,f)) ||
      (v2<2 && any(x->x!=1,values(f)))
@@ -1325,7 +1335,7 @@ function root(x::Integer,n=2)
   get!(Irootdict,(n,x)) do
     if x==1 || (x==-1 && isodd(n)) return x end
     if x<0 && n==2 return E(4)*root(-x) end
-    l=factor(x)
+    l=Primes.factor(x)
     if any(y->(2y)%n!=0,values(l)) 
       if x==-1 return root(E(2),n) end
       error("root($x,$n) not implemented")
@@ -1347,6 +1357,7 @@ root(x::Rational,n=2)=root(numerator(x),n)//root(denominator(x),n)
 
 # find the "canonical" best of the n possible roots
 function root(r::Root1,n=2)
+  if iszero(n) return one(r) end
   d=order(r)
   j=1
   n1=n
