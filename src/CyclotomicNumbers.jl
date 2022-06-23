@@ -847,20 +847,21 @@ function Base.show(io::IO, p::Cyc)
   quadratic=get(io,:quadratic,true)
   repl=get(io,:limit,false)
   TeX=get(io,:TeX,false)
+  function printtyped(n)
+    if repl||TeX|| get(io,:typeinfo,Any)==typeof(p) print(io,n)
+    else print(io,typeof(p),"(",n,")")
+    end
+  end
   @static if lazy lower!(p) end
   if conductor(p)==1
     n=num(p)
     if n isa Integer || n isa Rational{<:Integer}
-      if denominator(n)==1
-        if repl||TeX||haskey(io,:typeinfo) print(io,numerator(n))
-        else print(io,"Cyc{",typeof(n),"}(",numerator(n),")")
-        end
-        return
+      if denominator(n)==1 printtyped(numerator(n))
+      else printtyped(n)
       end
+      return
     else
-      if repl||TeX||haskey(io,:typeinfo) print(io,n)
-      else print(io,"Cyc{",typeof(n),"}(",n,")")
-      end
+      printtyped(n)
       return
     end
   end
@@ -875,11 +876,15 @@ function Base.show(io::IO, p::Cyc)
       rq=repr(q;context=io)
       rq=format_coefficient(rq;allow_frac=true)
       t=format_coefficient(normal_show(io,test))
+      if !repl||TeX t*="*" end
       if !isempty(rq) && rq[1]=='-' rq="-"*t*rq[2:end] else rq=t*rq end
       push!(rqq,rq)
     end
   end
-  print(io,rqq[argmin(length.(rqq))])
+  n=rqq[argmin(length.(rqq))]
+  if repl||TeX|| get(io,:typeinfo,Any)==typeof(p) print(io,n)
+  else print(io,typeof(p),"(",n,")")
+  end
 end
 
 # write a,b in common field Q(ζ_n)
