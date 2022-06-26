@@ -30,7 +30,7 @@ end
 @test mytest("CyclotomicNumbers.jl","1//(1+E(4))","Cyc{Rational{Int64}}: (1-ζ₄)/2")
 @test mytest("CyclotomicNumbers.jl","Cyc(1//2+im)","Cyc{Rational{Int64}}: (1+2ζ₄)/2")
 @test mytest("CyclotomicNumbers.jl","conj(1+E(4))","Cyc{Int64}: 1-ζ₄")
-@test mytest("CyclotomicNumbers.jl","real(E(3))","Cyc{Rational{Int64}}: -1/2")
+@test mytest("CyclotomicNumbers.jl","real(E(3))","Cyc{Rational{Int64}}: -1//2")
 @test mytest("CyclotomicNumbers.jl","Rational{Int}(real(E(3)))","-1//2")
 @test mytest("CyclotomicNumbers.jl","imag(E(3))","Cyc{Rational{Int64}}: √3/2")
 @test mytest("CyclotomicNumbers.jl","c=Cyc(E(9))","Cyc{Int64}: -ζ₉⁴-ζ₉⁷")

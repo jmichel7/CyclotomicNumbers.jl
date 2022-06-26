@@ -135,7 +135,7 @@ julia> conj(1+E(4)) # complex conjugate
 Cyc{Int64}: 1-ζ₄
 
 julia> real(E(3))  # real part
-Cyc{Rational{Int64}}: -1/2
+Cyc{Rational{Int64}}: -1//2
 
 julia> Rational{Int}(real(E(3)))
 -1//2
@@ -338,14 +338,7 @@ function prime_residues(n)
   (1:n-1)[pp]
 end
 
-using Primes: Primes
-
-if isdefined(Primes,:eachfactor)
-  const EF=Primes.eachfactor
-else
-  const fact_dict=Dict(2=>Primes.factor(2))
-  EF(n)=get!(()->Primes.factor(n),fact_dict,n)
-end
+using Primes: factor, eachfactor
 
 #------------------------ type Root1 ----------------------------------
 struct Root1 <: Number # E(c,n)
@@ -509,7 +502,7 @@ function zumbroich_basis(n::Int)
     else return div(1-p,2):div(p-1,2)
     end
   end
-  nfact=EF(n)
+  nfact=eachfactor(n)
   res=
   let J=J
     [[div(n*i,p^k) for i in J(k-1,p)] for (p,np) in nfact for k in 1:np]
@@ -702,7 +695,7 @@ function Elist(n::Int,i::Int)
   get!(Elist_dict,(n,i)) do
     mp=Int[]
     j=i
-    for (p,np) in EF(n)
+    for (p,np) in eachfactor(n)
       f=p^np
       m=div(n,f)
       cnt=mod(j*invmod(m,f),f)
@@ -1009,7 +1002,7 @@ elseif impl==:vec
 elseif impl==:svec
   if obviouslyzero(c) return Cyc!(c,1,spzeros(valtype(c),1)) end
 end
-  for (p,np) in EF(n)
+  for (p,np) in eachfactor(n)
     m=div(n,p)
 if impl==:vec
     kk=filter(i->c.d[i]!=0,eachindex(c.d))
@@ -1243,7 +1236,7 @@ function Quadratic(c::Cyc)
   den=denominator(c)
   c=numerator(c)
   if conductor(c)==1 return Quadratic(num(c),0,1,den) end
-  f=Primes.factor(conductor(c))
+  f=factor(conductor(c))
   v2=get(f,2,0)
   if v2>3 || (v2==2 && any(p->p[1]!=2 && p[2]!=1,f)) ||
      (v2<2 && any(x->x!=1,values(f)))
@@ -1340,7 +1333,7 @@ function root(x::Integer,n=2)
   get!(Irootdict,(n,x)) do
     if x==1 || (x==-1 && isodd(n)) return x end
     if x<0 && n==2 return E(4)*root(-x) end
-    l=Primes.factor(x)
+    l=factor(x)
     if any(y->(2y)%n!=0,values(l)) 
       if x==-1 return root(E(2),n) end
       error("root($x,$n) not implemented")
