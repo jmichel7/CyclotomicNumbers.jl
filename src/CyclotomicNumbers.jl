@@ -1312,10 +1312,9 @@ const Irootdict=Dict{Tuple{Int,Int},Union{Cyc{Int},Int}}()
 """
 `root(x,n=2)`
 
-computes  the `n`-th root of `x` when we know  how to do it. We know how to
-compute  `n`-th  roots  for  roots  of  unity, square roots of integers and
-`n`-th  roots  of  perfect  `n`-th  powers  of  integers or square roots of
-integers.
+computes  an `n`-th root of `x`  when we know how to  do it. We know how to
+compute  `n`-th roots  of roots  of unity,  and `n`-th  or `2n`-th roots of
+perfect `n`-th powers of integers or rationals.
 
 ```julia-repl
 julia> root(-1)
@@ -1324,12 +1323,15 @@ Cyc{Int64}: ζ₄
 julia> root(E(4))
 Root1: ζ₈
 
-julia> root(27,6)
-Cyc{Int64}: √3
+julia> root(27//8,6)
+Cyc{Rational{Int64}}: √6/2
 ```
 """
-function root(x::Integer,n=2)
+function root(x::Int,n=2) # only defined for Int so no conflict with PuiseuxPols
   if isone(n) || (!lazy && isone(x)) return x end
+  if n==2 && x>=0 
+    r=isqrt(x);if r^2==x return r end 
+  end
   get!(Irootdict,(n,x)) do
     if x==1 || (x==-1 && isodd(n)) return x end
     if x<0 && n==2 return E(4)*root(-x) end

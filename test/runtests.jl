@@ -65,6 +65,6 @@ end
 @test mytest("CyclotomicNumbers.jl","Quadratic(1+E(5))","nothing")
 @test mytest("CyclotomicNumbers.jl","root(-1)","Cyc{Int64}: ζ₄")
 @test mytest("CyclotomicNumbers.jl","root(E(4))","Root1: ζ₈")
-@test mytest("CyclotomicNumbers.jl","root(27,6)","Cyc{Int64}: √3")
+@test mytest("CyclotomicNumbers.jl","root(27//8,6)","Cyc{Rational{Int64}}: √6/2")
 end
 end
