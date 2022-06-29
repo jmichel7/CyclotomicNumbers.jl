@@ -958,12 +958,10 @@ function Base.:*(a::Cyc,b::Cyc;reduce=!lazy)
 end
 
 Base.://(c::Cyc,a::Real)=Cyc(conductor(c),impl==:MM ? c.d//a : c.d.//a)
-Base.://(a::Cyc,c::Cyc)=a*inv(Cyc{promote_type(valtype(c),Rational{Int})}(c))
-Base.://(a::Real,c::Cyc)=a*inv(Cyc{promote_type(valtype(c),Rational{Int})}(c))
+Base.://(a::Union{Cyc,Real,Root1},c::Cyc)=a*inv(
+                               Cyc{promote_type(valtype(c),Rational{Int})}(c))
 Base.://(c::Root1,a::Real)=Cyc(c)//a
-Base.://(c::Root1,a::Cyc)=Cyc(c)//a
-Base.://(a::Real,c::Root1)=a//Cyc(c)
-Base.://(a::Cyc,c::Root1)=a//Cyc(c)
+Base.://(a::Union{Real,Cyc},c::Root1)=a//Cyc(c)
 Base.:/(c::Cyc,a::Real)=c*inv(a)
 Base.:/(a::Cyc,c::Cyc)=a*inv(c)
 Base.div(c::Root1,a)=div(Cyc(c),a)
@@ -1190,17 +1188,6 @@ function Root1(c::Cyc)
 end
 
 Base.:(==)(a::Root1,b::Number)=Cyc(a)==b # too expensive in lazy case
-
-function Base.:*(a::Cyc,b::Root1)
-  n=lcm(conductor(a),order(b))
-  na=div(n,conductor(a))
-  nb=div(n,order(b))
-  res=Cyc(n,valtype(a),na*i+nb*exponent(b)=>va for (i,va) in pairs(a))
-  @static if !lazy lower!(res) end
-  res
-end
-Base.:*(b::Root1,a::Cyc)=a*b
-
 Base.:+(a::Root1,b::Root1)=Cyc(a)+Cyc(b)
 Base.:-(a::Root1,b::Root1)=Cyc(a)-Cyc(b)
 Base.:-(r::Root1)=-Cyc(r)
