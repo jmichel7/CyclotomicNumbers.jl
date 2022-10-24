@@ -1,41 +1,42 @@
 """
 This  package deals with cyclotomic numbers,  the complex numbers which are
-linear  combinations  of  roots  of  unity  with  rational coefficients. It
-depends on the packages `ModuleElt` and `Primes`. It can also handle linear
-combinations  of roots of  unity with coefficients  in an arbitrary ring of
-real  numbers like  `Floats`. The  cyclotomic numbers  can be  converted to
-`Complex` numbers.
+linear  combinations  of  roots  of  unity,  usually  with with rational or
+integer  coefficients; but it is possible to use any coefficients `<:Real`.
+Cyclotomic numbers can be converted to `Complex` numbers.
 
-The  cyclotomic numbers form a field, the  cyclotomic field. It is also the
-maximal  extension of the rationals which  has an abelian Galois group. Its
-ring of integers are the sums of roots of unity with integer coefficients.
+The  cyclotomic  numbers  with  rational  coefficients  form  a  field, the
+cyclotomic  field. It  is the  maximal extension  of the  rationals with an
+abelian  Galois group. Its ring of  integers is the cyclotomic numbers with
+integer coefficients (called cyclotomic integers).
 
 Cyclotomic  numbers are very  important for finite  groups, since character
 values of finite groups are cyclotomic integers.
 
-This package is a port of the GAP implementation of cyclotomics, which uses
-a  normal form  given by  writing them  in the  Zumbroich basis.  This form
-allows to find the smallest Cyclotomic field which contains a given number,
-and  decide in particular  if a cyclotomic  is zero. Let ζₙ=exp(2iπ/n). The
-Zumbroich  basis is  a particular  subset of  size φ(n) of 1,ζₙ,ζₙ²,…,ζₙⁿ⁻¹
-which forms a basis of ℚ (ζₙ).  The reference is
+This package depends only on the packages `ModuleElt` and `Primes`. It is a
+port  of the  GAP implementation  of cyclotomics,  which uses a normal form
+given  by writing them in the Zumbroich basis. This form allows to find the
+smallest  Cyclotomic field  which contains  a given  number, and  decide in
+particular  if a cyclotomic is zero. Let ζₙ=exp(2iπ/n). The Zumbroich basis
+is a particular subset of size φ(n) of 1,ζₙ,ζₙ²,…,ζₙⁿ⁻¹ which forms a basis
+of ℚ (ζₙ). The reference is
 
 T. Breuer, Integral bases for subfields of cyclotomic fields AAECC 8 (1997)
 
 I  started  this  file  by  porting  Christian  Stump's Sage code, which is
 simpler  to understand than GAP's C  code. 
 
-As GAP does, I lower automatically numbers after each computation (that is,
-reduce  them to the smallest cyclotomic field where they belong). Currently
+As GAP does, I lower automatically numbers after each computation, that is,
+reduce  them to the smallest cyclotomic  field where they belong. Currently
 the  code is somewhat  slower (depending on  the operation it  has the same
 speed or is slower up to 50%) than the C code in GAP but there are probably
 opportunities to optimize that I missed.
 
 What GAP does which I do not do is convert automatically a Cyclotomic which
-is  rational to a Rational,  a Rational which is  integral to an Integer, a
-BigInt  which is  small to  an Int,  etc… This  is a tremendously important
-optimization  but because of type stability in Julia it needs a new type of
-number to be added to Julia, which I am not competent enough to try.
+is  rational  to  a  `Rational`,  a  `Rational`  which  is  integral  to an
+`Integer`,  a  `BigInt`  which  is  small  to  an  `Int`,  etc…  This  is a
+tremendously  important optimization but because of type stability in Julia
+it  needs  a  new  type  of  number  to  be  added to Julia, which I am not
+competent enough to try.
 
 This package is similar (and mostly compatible) with Marek Kaluba's package
 `Cyclotomics`,  whose existence I discovered after writing this package. We
@@ -50,9 +51,9 @@ which are not clear currently. Some differences are:
 
   - In Kaluba's package  numbers are not  systematically lowered but only on
     demand  (like  for  printing).  this  speeds  up some computations by a
-    factor  approaching 2, but it also makes  some computations I had to do
-    infeasible,  like the following one (which if not lowering involves too
-    large fields); the answer is `-36ζ₃²`:
+    factor  approaching 2, but it also makes some computations I have to do
+    infeasible,  like the following one, which if not lowering involves too
+    large fields; the answer is `-36ζ₃²`:
 
 ```julia-rep1
 julia> prod(x->1-x,[E(3),E(3,2),E(6),E(6,5),E(8),E(8),E(8,5),E(8,7),E(9,2),
@@ -81,8 +82,8 @@ E(204,131),E(204,143),E(204,155),E(204,167),E(204,179),E(204,191),E(204,203)])
 If you `develop` my package it is easy to use the strategy of lowering only
 on  demand or to use alternate implementations like dense vectors or sparse
 vectors (like `Cyclotomics`) --- I prepared boolean flags to choose various
-implementations in the code. I choosed the implementation with `ModuleElts`
-and systematic lowering as giving the best results.
+implementations  in the  code. I  have currently  chosen the implementation
+with `ModuleElts` and systematic lowering as giving the best results.
 
 The main way to build a Cyclotomic number is to use the function `E(n,k=1)`
 which   constructs  the  `Root1`  equal  to   `ζₙᵏ`,  and  to  make  linear
@@ -470,14 +471,16 @@ Base.valtype(c::Cyc{T}) where T =T # how to recover T from c
 
 """
    `conductor(c::Cyc)`
+
+returns the smallest positive integer  n such that `c∈ ℚ (ζₙ)`
+
    `conductor(a::AbstractArray)`
 
-returns the smallest positive integer  n such that `c∈ ℚ (ζₙ)` (resp. all
-elements of `a` are in `ℚ (ζₙ)`).
+smallest positive integer  n such that all elements of `a` are in `ℚ (ζₙ)`
 
 ```julia-repl
-julia> conductor(E(9))
-9
+julia> conductor(E(6))
+3
 
 julia> conductor([E(3),1//2,E(4)])
 12
@@ -490,32 +493,24 @@ conductor(i::Rational{<:Integer})=1 # for convenience
 """
   CyclotomicNumbers.zumbroich_basis(n::Int) 
 
-  returns  the Zumbroich basis of  ℚ (ζₙ) as the  vector of i in 0:n-1 such
-  that `ζₙⁱ` is in the basis.
+  returns  the Zumbroich basis of ℚ (ζₙ) as the sorted vector of i in 0:n-1
+  such that `ζₙⁱ` is in the basis.
 """
 function zumbroich_basis(n::Int)
-#  Note that this function is not used in the rest of the code. We use Elist.
+# This function is not used in the rest of this module. We use Elist.
   if n==1 return [0] end
   function J(k::Int, p::Int) # see [Breuer] Rem. 1 p. 283
-    if k==0 if p==2 return 0:0 else return 1:p-1 end
-    elseif p==2 return 0:1
-    else return div(1-p,2):div(p-1,2)
-    end
+    k==0 ? (p==2 ? (0:0) : (1:p-1)) : p==2 ? (0:1) : (div(1-p,2):div(p-1,2))
   end
-  nfact=eachfactor(n)
-  res=
-  let J=J
-    [[div(n*i,p^k) for i in J(k-1,p)] for (p,np) in nfact for k in 1:np]
-  end
-  v=sum.(vec(collect(Iterators.product(res...))))
-  sort(v.%n)
+  sort(vec(sum.(Iterators.product((div(n,p^k)*J(k-1,p) 
+       for (p,np) in eachfactor(n) for k in 1:np)...))).%n)
 end
 
 """
 `coefficients(c::Cyc)`
 
 for  a cyclotomic `c` of conductor `n`,  returns a vector `v` of length `n`
-such that `c==∑ᵢ vᵢ₋₁ ζⁱ`.
+such that `c==∑ᵢ vᵢ₊₁ ζⁱ` for `i∈ 0:n-1`.
 
 ```julia-repl
 julia> coefficients(Cyc(E(9)))
@@ -544,8 +539,8 @@ end
 """
 `denominator(c::Cyc{Rational})`
 
-returns the smallest `d` such that `d*c` has integral coefficients (thus is
-an algebraic integer).
+returns   the   smallest   integer   `d`   such  that  `d*c`  has  integral
+`coefficients` (thus is an algebraic integer).
 """
 Base.denominator(c::Cyc)=lcm(denominator.(values(c.d)))
 
@@ -682,14 +677,15 @@ Base.abs(a::Root1)=one(a)
 # memoize Elist
 const Elist_dict=Dict{Tuple{Int,Int},Pair{Bool,Vector{Int}}}((1,0)=>(true=>[0])) 
 """
-  CyclotomicNumbers.Elist(n,i)  
-  
-  expresses  ζₙⁱ  in  zumbroich_basis(n):  it  is  a  sum  of some ζₙʲ with
-  coefficients all 1 or all -1. The result is a Pair sgn=>inds where sgn is
-  true  if coefficients are all 1 and false otherwise, and inds is the list
-  of i in 0:n-1 such that ζₙⁱ occurs with a non-zero coefficient.
+`CyclotomicNumbers.Elist(n,i)`
 
-  Should only be called with i∈ 0:n-1
+expresses  `ζₙⁱ` in  `zumbroich_basis(n)`: it  is a  sum of some `ζₙʲ` with
+coefficients  all 1  or all  -1. The  result is  a `Pair` `sgn=>inds` where
+`sgn` is `true` if coefficients are all 1 and `false` otherwise, and `inds`
+is  the  list  of  `i`  in  `0:n-1`  such that `ζₙⁱ` occurs with a non-zero
+coefficient.
+
+Should only be called with `i∈ 0:n-1`
 """
 function Elist(n::Int,i::Int)
   get!(Elist_dict,(n,i)) do
@@ -880,7 +876,7 @@ function Base.show(io::IO, p::Cyc)
   end
 end
 
-# write a,b in common field Q(ζ_n)
+# write a,b in common field Q(ζ_lcm(conductor(a),conductor(b)))
 function promote_conductor(a::Cyc{T},b::Cyc{T})where T
   if conductor(a)==conductor(b) return (a, b) end
   n=lcm(conductor(a),conductor(b))
@@ -958,12 +954,10 @@ function Base.:*(a::Cyc,b::Cyc;reduce=!lazy)
 end
 
 Base.://(c::Cyc,a::Real)=Cyc(conductor(c),impl==:MM ? c.d//a : c.d.//a)
-Base.://(a::Cyc,c::Cyc)=a*inv(Cyc{promote_type(valtype(c),Rational{Int})}(c))
-Base.://(a::Real,c::Cyc)=a*inv(Cyc{promote_type(valtype(c),Rational{Int})}(c))
+Base.://(a::Union{Cyc,Real,Root1},c::Cyc)=a*inv(
+                               Cyc{promote_type(valtype(c),Rational{Int})}(c))
 Base.://(c::Root1,a::Real)=Cyc(c)//a
-Base.://(c::Root1,a::Cyc)=Cyc(c)//a
-Base.://(a::Real,c::Root1)=a//Cyc(c)
-Base.://(a::Cyc,c::Root1)=a//Cyc(c)
+Base.://(a::Union{Real,Cyc},c::Root1)=a//Cyc(c)
 Base.:/(c::Cyc,a::Real)=c*inv(a)
 Base.:/(a::Cyc,c::Cyc)=a*inv(c)
 Base.div(c::Root1,a)=div(Cyc(c),a)
@@ -1083,9 +1077,9 @@ galois(c::Rational,n::Int)=c
 galois(c::Integer,n::Int)=c
 
 """
-  galois(c::Cyc,n::Int) applies to c the galois automorphism
-  of Q(ζ_conductor(c)) raising all roots of unity to the n-th power.
-  n should be prime to conductor(c).
+`galois(c::Cyc,n::Int)`  applies  to  `c`  the  galois  automorphism  of `ℚ
+(ζ_conductor(c))`  raising  all  roots  of  unity  to the `n`-th power. `n`
+should be prime to `conductor(c)`.
 # Examples
 ```julia-repl
 julia> galois(1+E(4),-1) # galois(c,-1) is the same as conj(c)
@@ -1115,7 +1109,7 @@ Base.conj(c::Cyc)=galois(c,-1)
 `conjugates(c)`
 
 returns the list of distinct galois conjugates of `c` (over the Rationals),
-starting with c
+starting with `c`
 
 ```julia-repl
 julia> conjugates(1+root(5))
@@ -1190,17 +1184,6 @@ function Root1(c::Cyc)
 end
 
 Base.:(==)(a::Root1,b::Number)=Cyc(a)==b # too expensive in lazy case
-
-function Base.:*(a::Cyc,b::Root1)
-  n=lcm(conductor(a),order(b))
-  na=div(n,conductor(a))
-  nb=div(n,order(b))
-  res=Cyc(n,valtype(a),na*i+nb*exponent(b)=>va for (i,va) in pairs(a))
-  @static if !lazy lower!(res) end
-  res
-end
-Base.:*(b::Root1,a::Cyc)=a*b
-
 Base.:+(a::Root1,b::Root1)=Cyc(a)+Cyc(b)
 Base.:-(a::Root1,b::Root1)=Cyc(a)-Cyc(b)
 Base.:-(r::Root1)=-Cyc(r)
