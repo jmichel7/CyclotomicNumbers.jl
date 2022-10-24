@@ -1389,10 +1389,10 @@ function root(x::Cyc,n=2)
   end
 end
 
-Base.gcd(v::Vector{<:Cyc})=one(v[1])
-Base.gcd(a::Cyc,b::Cyc)=one(a)
-Base.gcd(a::Cyc,b::Number)=one(a)
-Base.gcd(b::Number,a::Cyc)=one(a)
+Base.gcd(v::Vector{<:Cyc})=reduce(gcd,v;init=zero(Cyc))
+Base.gcd(a::Cyc,b::Cyc)=gcd(gcd(collect(values(a.d))),gcd(collect(values(b.d))))
+Base.gcd(a::Cyc,b::Number)=gcd(gcd(collect(values(a.d))),b)
+Base.gcd(b::Number,a::Cyc)=gcd(gcd(collect(values(a.d))),b)
 
 # testmat(12)^2
 # 347.534 ms (4367402 allocations: 366.17 MiB) in 1.5.3
