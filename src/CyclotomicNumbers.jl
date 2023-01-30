@@ -266,8 +266,8 @@ julia> function testmat(p)
        end
 testmat (generic function with 1 method)
 
-julia> @btime CyclotomicNumbers.testmat(12)^2;  # on Julia 1.7.2
-  287.781 ms (3774785 allocations: 279.66 MiB)
+julia> @btime CyclotomicNumbers.testmat(12)^2;  # on Julia 1.8.5
+  182.929 ms (2032503 allocations: 198.22 MiB)
 ```
 The equivalent in GAP:
 
@@ -1054,17 +1054,20 @@ elseif impl==:MM
         return lower!(Cyc!(c,m,MM(div(k,p)=>v for (k,v) in c.d;check=false)))
       end
     elseif iszero(length(c.d)%(p-1))
-      cnt=zeros(Int,m)
-      for (k,v) in c.d cnt[1+(k%m)]+=1 end
-      if !all(x->iszero(x) || x==p-1,cnt) continue end
-  #   u=findall(!iszero,cnt).-1 # next line is quite faster
-  #   u=(0:length(cnt)-1)[cnt.!=0]
-      u=[i-1 for (i,x) in pairs(cnt) if !iszero(x)]
-      kk=@. div(u+m*mod(-u,p)*invmod(m,p),p)%m
+      u=zeros(Int,m)
+      for (k,v) in c.d u[1+(k%m)]+=1 end
+      if !all(x->iszero(x) || x==p-1,u) continue end
+  #   u=findall(!iszero,u).-1 # next lines are quite faster
+  #   u=(0:length(u)-1)[u.!=0]
+  #   u=[i-1 for (i,x) in pairs(u) if !iszero(x)]
+  #   next 2 lines again faster
+      i=0; for j in eachindex(u) if !iszero(u[j]) i+=1;u[i]=j-1 end end
+      resize!(u,i)
+      @. u=div(u+m*mod(-u,p)*invmod(m,p),p)%m
       if p==2  
-        return lower!(Cyc!(c,m,MM(k=>c.d[(k*p)%n] for k in kk)))
-      elseif all(k->allequal(c.d[(m*i+k*p)%n] for i in 1:p-1),kk)
-        return lower!(Cyc!(c,m,MM(k=>-c.d[(m+k*p)%n] for k in kk)))
+        return lower!(Cyc!(c,m,MM(k=>c.d[(k*p)%n] for k in u)))
+      elseif all(k->allequal(c.d[(m*i+k*p)%n] for i in 1:p-1),u)
+        return lower!(Cyc!(c,m,MM(k=>-c.d[(m+k*p)%n] for k in u)))
       end
     end
 end
@@ -1380,6 +1383,7 @@ Base.gcd(b::Number,a::Cyc)=gcd(gcd(collect(values(a.d))),b)
 # testmat(12)^2
 # 347.534 ms (4367402 allocations: 366.17 MiB) in 1.5.3
 # 565.431 ms (5861810 allocations: 775.28 MiB) in 1.5.3, HModuleElts
+# 1.8.5 182.929 ms (2032503 allocations: 198.22 MiB)
 function testmat(p)
   ss=[[i,j] for i in 0:p-1 for j in i+1:p-1]
   [(E(p,i'*reverse(j))-E(p,i'*j))//p for i in ss,j in ss]
