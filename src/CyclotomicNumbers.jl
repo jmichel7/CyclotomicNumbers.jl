@@ -283,14 +283,16 @@ export coefficients, root, E, Cyc, conductor, galois, Root1, Quadratic,
        order, conjugates, modZ
 
 #---- formatting utilities duplicated here to avoid dependency ----------
-const ok="([^-+*/]|√-|{-)*"
-const par="(\\([^()]*\\))"
-const nobf=Regex("^[-+]?$ok$par*$ok(/+)?[0-9]*\$")
-const nob=Regex("^[-+]?$ok$par*$ok\$")
+const ok="^[-+]?([^-+*/]|√-|{-)*"
+const par=Regex("(\\([^()]*\\))")
+const nobf=Regex("$ok(/+)?[0-9]*\$")
+const nob=Regex("$ok\$")
 
 function bracket_if_needed(c::String;allow_frac=false)
+  u=c
+  while(match(par,u)!=nothing) u=replace(u,par=>"") end
   e=allow_frac ? nobf : nob
-  if match(e,c)!==nothing c
+  if match(e,u)!==nothing c
   else "("*c*")" 
   end
 end
