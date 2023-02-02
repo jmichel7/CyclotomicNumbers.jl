@@ -10,6 +10,7 @@ Primes = "0.5.3, 0.6"
 [deps]
 ModuleElts = "4249f315-58d4-4c46-b324-3577fc7dfca0"
 Primes = "27ebfcd6-29c5-5fa9-bf4b-fb8fc14df3ae"
+#SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf" uncomment if :svec
 
 [extras]
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"

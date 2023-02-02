@@ -288,6 +288,7 @@ const par=Regex("(\\([^()]*\\))")
 const nobf=Regex("$ok(/+)?[0-9]*\$")
 const nob=Regex("$ok\$")
 
+# `c` is a coefficient. Bracket it for clarity if needed
 function bracket_if_needed(c::String;allow_frac=false)
   u=c
   while(match(par,u)!=nothing) u=replace(u,par=>"") end
@@ -297,6 +298,7 @@ function bracket_if_needed(c::String;allow_frac=false)
   end
 end
 
+# `c` is a coefficient. Bracket it if needed, simplify it if ±1
 function format_coefficient(c::String;allow_frac=false)
   if c=="1" ""
   elseif c=="-1" "-"
@@ -304,6 +306,7 @@ function format_coefficient(c::String;allow_frac=false)
   end
 end
 
+# format exponent as unicode or TeX
 function stringexp(io::IO,n::Integer)
   if isone(n) ""
   elseif get(io,:TeX,false) 
@@ -318,6 +321,7 @@ function stringexp(io::IO,n::Integer)
   end
 end
 
+# format index as unicode or TeX
 function stringind(io::IO,n::Integer)
   if get(io,:TeX,false) 
     n in 0:9 ? "_"*string(n) : "_{"*string(n)*"}"
@@ -415,16 +419,17 @@ Base.:/(a::Root1,b::Root1)=a*inv(b)
 Base.://(a::Root1,b::Root1)=a/b
 
 #------------------------ type Cyc ----------------------------------
-const impl=:MM # I tried 4 different implementations. For testmat(12)^2
-    # MM=ModuleElt is fastest
-    # MM=HModuleElt is 50% slower than ModuleElt
-    # :svec is 25% slower than ModuleElt
-    # :vec is 45% slower than ModuleElt
+const impl=:MM # I tried 4 different implementations. 
+# For testmat(12)^2
+# :MM,ModuleElt is fastest
+# :MM,HModuleElt is 70% slower than ModuleElt
+# :svec is 50% slower than ModuleElt
+# :vec is 40% slower than ModuleElt
 const lazy=false # whether to lower all the time or on demand
 
 if impl==:vec
 struct Cyc{T <: Real}<: Number   # a cyclotomic number
-  d::Vector{T} # the i-th element is the coefficient on ζⁱ⁻¹
+  d::Vector{T} # length(d)==conductor; i-th element is the coefficient on ζⁱ⁻¹
   global function Cyc_(d::Vector{T}) where T<:Real 
     new{T}(d)
   end
@@ -456,7 +461,7 @@ using ModuleElts
 const MM=ModuleElt # you can try with HModuleElt
 mutable struct Cyc{T <: Real}<: Number   # a cyclotomic number
   n::Int
-  d::MM{Int,T} # list of pairs: i=>coeff on ζⁱ (where i∈ zumbroich_basis(n))
+  d::MM{Int,T} # pairs: i=>coeff on ζⁱ (where i∈ zumbroich_basis(n))
 end
 Base.pairs(c::Cyc)=c.d
 end
@@ -973,7 +978,8 @@ function Cyc!(c,n,v)
     c.d.=v
   else
     c.n=n
-    c.d=v
+    resize!(c.d.d,length(v))
+    c.d.d.=v
   end
   c
 end
@@ -991,40 +997,33 @@ function lower!(c::Cyc) # write c in smallest Q(ζ_n) where it sits
   n=conductor(c)
  # println("lowering $(conductor(c)):$(c.d)")
   if n==1 return c end
-if impl==:MM
-  if obviouslyzero(c) return Cyc!(c,1,zero(c.d)) end
-elseif impl==:vec
-  if obviouslyzero(c) return Cyc!(c,1,zeros(valtype(c),1)) end
-elseif impl==:svec
-  if obviouslyzero(c) return Cyc!(c,1,spzeros(valtype(c),1)) end
-end
+  if obviouslyzero(c)
+    return Cyc!(c,1,impl==:MM ? empty(c.d.d) : impl==:vec ? zeros(valtype(c),1)
+                 : spzeros(valtype(c),1))
+  end
   for (p,np) in eachfactor(n)
     m=div(n,p)
 if impl==:vec
-    kk=filter(i->c.d[i]!=0,eachindex(c.d))
-    val=c.d[kk]
+    kk=Iterators.filter(i->c.d[i]!=0,eachindex(c.d))
     if np>1 
       if all(k->(k-1)%p==0,kk) 
         v=zeros(valtype(c),m)
-        view(v,map(x->1+div(x-1,p),kk)).=val
+        for x in kk v[1+div(x-1,p)]=c.d[x] end
         return lower!(Cyc!(c,m,v))
       end
-    elseif iszero(length(kk)%(p-1))
-      kk=kk.-1
-      cnt=zeros(Int,m)
-      for k in kk cnt[1+(k%m)]+=1 end
-      if !all(x->iszero(x) || x==p-1,cnt) continue end
-      u=(0:length(cnt)-1)[cnt.!=0]
-      kk=@. div(u+m*mod(-u,p)*invmod(m,p),p)%m
-      if !issorted(kk) sort!(kk) end
+    elseif iszero(count(!iszero,c.d)%(p-1))
+      u=zeros(Int,m)
+      for k in kk u[1+((k-1)%m)]+=1 end
+      if !all(x->iszero(x) || x==p-1,u) continue end
+      i=0; for j in eachindex(u) if !iszero(u[j]) i+=1;u[i]=j-1 end end
+      resize!(u,i)
+      @. u=div(u+m*mod(-u,p)*invmod(m,p),p)%m
       v=zeros(valtype(c),m)
       if p==2  
-#       view(v,kk.+1).=[c.d[1+(k*p)%n] for k in kk]
-        @views @. v[kk+1].=c.d[1+(kk*p)%n]
+        @views @. v[u+1].=c.d[1+(u*p)%n]
         return lower!(Cyc!(c,m,v))
-      elseif all(k->allequal(map(i->c.d[1+(m*i+k*p)%n],1:p-1)),kk)
-#       view(v,kk.+1).=[-c.d[1+(m+k*p)%n] for k in kk]
-        @views @. v[kk+1].=-c.d[1+(m+kk*p)%n]
+      elseif all(k->allequal(c.d[1+(m*i+k*p)%n] for i in 1:p-1),u)
+        @views @. v[u+1].=-c.d[1+(m+u*p)%n]
         return lower!(Cyc!(c,m,v))
       end
     end
@@ -1036,40 +1035,37 @@ elseif impl==:svec
         return lower!(Cyc!(c,m,SparseVector(m,map(x->1+div(x-1,p),kk),val)))
       end
     elseif iszero(length(kk)%(p-1))
-      cnt=zeros(Int,m)
-      for k in kk cnt[1+(k-1)%m]+=1 end
-      if !all(x->iszero(x) || x==p-1,cnt) continue end
-      u=(0:length(cnt)-1)[cnt.!=0]
-      kk=@. div(u+m*mod(-u,p)*invmod(m,p),p)%m
-      if !issorted(kk) sort!(kk) end
-      let c=c, kk=kk, p=p, m=m
+      u=zeros(Int,m)
+      for k in kk u[1+(k-1)%m]+=1 end
+      if !all(x->iszero(x) || x==p-1,u) continue end
+      i=0; for j in eachindex(u) if !iszero(u[j]) i+=1;u[i]=j-1 end end
+      resize!(u,i)
+      @. u=div(u+m*mod(-u,p)*invmod(m,p),p)%m
+      if !issorted(u) sort!(u) end
       if p==2  
-        return lower!(Cyc!(c,m,SparseVector(m,kk.+1,[c.d[1+(k*p)%n] for k in kk])))
-      elseif all(k->allequal(c.d[1+(m*i+k*p)%n] for i in 1:p-1),kk)
-        return lower!(Cyc!(c,m,SparseVector(m,kk.+1,[-c.d[1+(m+k*p)%n] for k in kk])))
-      end
+        return lower!(Cyc!(c,m,SparseVector(m,u.+1,[c.d[1+(k*p)%n] for k in u])))
+      elseif all(k->allequal(c.d[1+(m*i+k*p)%n] for i in 1:p-1),u)
+        return lower!(Cyc!(c,m,SparseVector(m,u.+1,[-c.d[1+(m+k*p)%n] for k in u])))
       end
     end
 elseif impl==:MM
     if np>1 
       if all(k->first(k)%p==0,c.d) 
-        return lower!(Cyc!(c,m,MM(div(k,p)=>v for (k,v) in c.d;check=false)))
+        return lower!(Cyc!(c,m,div(k,p)=>v for (k,v) in c.d))
       end
     elseif iszero(length(c.d)%(p-1))
       u=zeros(Int,m)
       for (k,v) in c.d u[1+(k%m)]+=1 end
       if !all(x->iszero(x) || x==p-1,u) continue end
-  #   u=findall(!iszero,u).-1 # next lines are quite faster
-  #   u=(0:length(u)-1)[u.!=0]
-  #   u=[i-1 for (i,x) in pairs(u) if !iszero(x)]
-  #   next 2 lines again faster
       i=0; for j in eachindex(u) if !iszero(u[j]) i+=1;u[i]=j-1 end end
       resize!(u,i)
       @. u=div(u+m*mod(-u,p)*invmod(m,p),p)%m
       if p==2  
-        return lower!(Cyc!(c,m,MM(k=>c.d[(k*p)%n] for k in u)))
+        v=[k=>c.d[(k*p)%n] for k in u];if !issorted(v) sort!(v) end
+        return lower!(Cyc!(c,m,v))
       elseif all(k->allequal(c.d[(m*i+k*p)%n] for i in 1:p-1),u)
-        return lower!(Cyc!(c,m,MM(k=>-c.d[(m+k*p)%n] for k in u)))
+        v=[k=>-c.d[(m+k*p)%n] for k in u];if !issorted(v) sort!(v) end
+        return lower!(Cyc!(c,m,v))
       end
     end
 end
@@ -1386,6 +1382,8 @@ Base.gcd(b::Number,a::Cyc)=gcd(gcd(collect(values(a.d))),b)
 # 347.534 ms (4367402 allocations: 366.17 MiB) in 1.5.3
 # 565.431 ms (5861810 allocations: 775.28 MiB) in 1.5.3, HModuleElts
 # 1.8.5 182.929 ms (2032503 allocations: 198.22 MiB)
+# 1.8.5 vec 265.328 ms (2111135 allocations: 234.22 MiB)
+# 1.8.5 svec 285.653 ms (3568605 allocations: 265.86 MiB)
 function testmat(p)
   ss=[[i,j] for i in 0:p-1 for j in i+1:p-1]
   [(E(p,i'*reverse(j))-E(p,i'*j))//p for i in ss,j in ss]
