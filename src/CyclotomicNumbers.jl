@@ -1073,12 +1073,12 @@ end
   c
 end
 
-galois(c::Rational,n::Int)=c
+galois(c::Rational,n::Integer)=c
 
-galois(c::Integer,n::Int)=c
+galois(c::Integer,n::Integer)=c
 
 """
-`galois(c::Cyc,n::Int)`  applies  to  `c`  the  galois  automorphism  of `ℚ
+`galois(c::Cyc,n::Integer)`  applies  to  `c`  the  galois  automorphism  of `ℚ
 (ζ_conductor(c))`  raising  all  roots  of  unity  to the `n`-th power. `n`
 should be prime to `conductor(c)`.
 # Examples
@@ -1090,7 +1090,7 @@ julia> galois(root(5),2)==-root(5)
 true
 ```
 """
-function galois(c::Cyc,n::Int)
+function galois(c::Cyc,n::Integer)
   if gcd(n,conductor(c))!=1 
     throw(DomainError(n,"should be prime to conductor $(conductor(c))"))
   end
@@ -1098,7 +1098,7 @@ function galois(c::Cyc,n::Int)
   Cyc(conductor(c),valtype(c),e*n=>p for (e,p) in pairs(c))
 end
 
-function galois(c::Root1,n::Int)
+function galois(c::Root1,n::Integer)
   d=order(c)
   if gcd(n,d)!=1 error("$n should be prime to order($c)=$d") end
   Root1(;r=n*c.r)
