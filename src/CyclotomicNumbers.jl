@@ -364,7 +364,7 @@ Base.exponent(a::Root1)=numerator(a.r)
 order(a::Root1)=denominator(a.r)
 conductor(a::Root1)=order(a)%4==2 ? div(order(a),2) : order(a)
 
-Root1(;r::Rational{<:Integer}=0//1)=Root1_(modZ(r))
+Root1(;r=0//1)=Root1_(modZ(Rational{Int}(r)))
 
 function Root1(c::Real)
   if c==1 Root1_(0//1)
@@ -1142,7 +1142,7 @@ Base.:^(a::Cyc, n::Integer)=n>=0 ? Base.power_by_squaring(a,n) :
                                    Base.power_by_squaring(inv(a),-n)
 
 Base.abs2(c::Cyc)=c*conj(c)
-Base.abs(c::Cyc)=abs(complex(c))
+Base.abs(c::Cyc)=conductor(c)==1 ? Cyc(abs(num(c))) : abs(complex(c))
 Base.adjoint(c::Cyc)=conj(c)
 
 """
