@@ -872,7 +872,7 @@ function Base.show(io::IO, p::Cyc)
       rq=repr(q;context=io)
       rq=format_coefficient(rq;allow_frac=true)
       t=format_coefficient(normal_show(io,test))
-      if !repl||TeX t*="*" end
+      if !(repl||TeX) t*="*" end
       if !isempty(rq) && rq[1]=='-' rq="-"*t*rq[2:end] else rq=t*rq end
       push!(rqq,rq)
     end
