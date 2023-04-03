@@ -367,9 +367,9 @@ conductor(a::Root1)=order(a)%4==2 ? div(order(a),2) : order(a)
 Root1(;r=0//1)=Root1_(modZ(Rational{Int}(r)))
 
 function Root1(c::Real)
-  if c==1 Root1_(0//1)
+  if isone(c) Root1_(0//1)
+  elseif iszero(c) Cyc(0)
   elseif c==-1 Root1_(1//2)
-  elseif c==0 Cyc(0)
   else nothing
   end
 end
@@ -409,6 +409,7 @@ Base.:(==)(a::Root1,b::Root1)=a.r==b.r
 Base.one(a::Root1)=Root1_(0//1)
 Base.zero(a::Root1)=zero(Cyc{Int})
 Base.isone(a::Root1)=iszero(a.r)
+Base.iszero(a::Root1)=false
 Base.:*(a::Root1,b::Root1)=Root1_(modZ(a.r+b.r))
 
 Base.:^(a::Root1,n::Integer)=Root1_(modZ(n*a.r))
@@ -563,7 +564,7 @@ Cyc(i::Real)=Cyc_([i])
 elseif impl==:svec
 Cyc(i::Real)=Cyc_(iszero(i) ? spzeros(typeof(i),1) : SparseVector(1,[1],[i]))
 else
-Cyc(i::Real)=Cyc(1,MM(i==0 ? Pair{Int,typeof(i)}[] : [0=>i];check=false))
+Cyc(i::Real)=Cyc(1,MM(iszero(i) ? Pair{Int,typeof(i)}[] : [0=>i];check=false))
 end
 Cyc{T}(i::Real) where T<:Real=Cyc(T(i))
 
@@ -575,11 +576,12 @@ if impl==:svec obviouslyzero(c::Cyc)=nnz(c.d)==0 # faster than iszero(c.d)
 else           obviouslyzero(c::Cyc)=iszero(c.d)
 end
 if lazy Base.iszero(c::Cyc)=obviouslyzero(lower!(c))
+        Base.isone(c::Cyc)=lower!(c);isone(conductor(c)) && isone(num(c))
 else    Base.iszero(c::Cyc)=obviouslyzero(c)
+        Base.isone(c::Cyc)=isone(conductor(c)) && isone(num(c))
 end
 Base.zero(::Type{Cyc{T}}) where T=Cyc{T}(0)
 Base.one(c::Cyc{T}) where T =Cyc{T}(1)
-Base.isone(c::Cyc)=isone(conductor(c)) && isone(num(c))
 
 function Cyc(c::Complex)
   if iszero(imag(c)) return Cyc(real(c)) end
@@ -864,7 +866,7 @@ function Base.show(io::IO, p::Cyc)
   rqq=[normal_show(io,p)]
   if quadratic && (valtype(p)<:Integer || valtype(p)<:Rational{<:Integer})
     q=Quadratic(p)
-    if !isnothing(q) push!(rqq,repr(q;context=io)) end
+    if !isnothing(q) pushfirst!(rqq,repr(q;context=io)) end
     for test in [1-E(4),1+E(4),E(3),E(3,2),1-E(3),1-E(3,2),1+E(3),1+E(3,2),root(-3)]
       if !iszero(conductor(p)%conductor(test)) continue end
       q=Quadratic(p*1//test)
@@ -1176,7 +1178,7 @@ function Root1(c::Cyc)
   for i in prime_residues(n)
     if c==E(n,i) return Root1_(i//n) end
     if -c==E(n,i)
-      if n%2==0 return E(n,div(n,2)+i)
+      if iseven(n) return E(n,div(n,2)+i)
       else return E(2n,n+2*i)
       end
     end
