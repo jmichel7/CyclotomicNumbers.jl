@@ -424,8 +424,8 @@ const impl=:MM # I tried 4 different implementations.
 # For testmat(12)^2
 # :MM,ModuleElt is fastest
 # :MM,HModuleElt is 70% slower than ModuleElt
-# :svec is 50% slower than ModuleElt
-# :vec is 40% slower than ModuleElt
+# :svec is 60% slower than ModuleElt
+# :vec is 50% slower than ModuleElt
 const lazy=false # whether to lower all the time or on demand
 
 if impl==:vec
@@ -752,8 +752,7 @@ end
 function Cyc(a::Root1) # the result is guaranteed lowered
   n=order(a)
   e=exponent(a)
-  if n%4==2 return -E(div(n,2),div(e,2)+div(n+2,4)) end
-  Cyc(n,Int,(e=>1,))
+  n%4==2 ? Cyc(div(n,2),Int,(div(e,2)+div(n+2,4)=>-1,)) : Cyc(n,Int,(e=>1,))
 end
 
 function Base.promote_rule(a::Type{Cyc{T1}},b::Type{T2})where {T1,T2<:Real}
@@ -1381,9 +1380,9 @@ Base.gcd(a::Cyc,b::Number)=gcd(gcd(collect(values(a.d))),b)
 Base.gcd(b::Number,a::Cyc)=gcd(gcd(collect(values(a.d))),b)
 
 # testmat(12)^2
-# 347.534 ms (4367402 allocations: 366.17 MiB) in 1.5.3
-# 565.431 ms (5861810 allocations: 775.28 MiB) in 1.5.3, HModuleElts
-# 1.8.5 182.929 ms (2032503 allocations: 198.22 MiB)
+# 1.5.3 347.534 ms (4367402 allocations: 366.17 MiB)
+# 1.5.3 565.431 ms (5861810 allocations: 775.28 MiB) HModuleElts
+# 1.9.0 174.725 ms (1856571 allocations: 188.89 MiB)
 # 1.8.5 vec 265.328 ms (2111135 allocations: 234.22 MiB)
 # 1.8.5 svec 285.653 ms (3568605 allocations: 265.86 MiB)
 function testmat(p)
