@@ -1375,7 +1375,12 @@ function root(x::Cyc,n=2)
 end
 
 Base.gcd(v::Vector{<:Cyc})=reduce(gcd,v;init=zero(Cyc))
-Base.gcd(a::Cyc,b::Cyc)=gcd(gcd(collect(values(a.d))),gcd(collect(values(b.d))))
+function Base.gcd(a::Cyc,b::Cyc)
+  if isone(denominator(a//b))  b
+  elseif isone(denominator(b//a)) a
+  else gcd(gcd(collect(values(a.d))),gcd(collect(values(b.d))))
+  end
+end
 Base.gcd(a::Cyc,b::Number)=gcd(gcd(collect(values(a.d))),b)
 Base.gcd(b::Number,a::Cyc)=gcd(gcd(collect(values(a.d))),b)
 
