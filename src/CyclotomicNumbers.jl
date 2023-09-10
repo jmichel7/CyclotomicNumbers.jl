@@ -16,9 +16,9 @@ This package depends only on the packages `ModuleElt` and `Primes`. It is a
 port  of the  GAP implementation  of cyclotomics,  which uses a normal form
 given  by writing them in the Zumbroich basis. This form allows to find the
 smallest  Cyclotomic field  which contains  a given  number, and  decide in
-particular  if a cyclotomic is zero. Let ζₙ=exp(2iπ/n). The Zumbroich basis
-is a particular subset of size φ(n) of 1,ζₙ,ζₙ²,…,ζₙⁿ⁻¹ which forms a basis
-of ℚ (ζₙ). The reference is
+particular  if a cyclotomic  is zero. Let  `ζₙ=exp(2im*π/n)`. The Zumbroich
+basis is a particular subset of size φ(n) of 1,ζₙ,ζₙ²,…,ζₙⁿ⁻¹ which forms a
+basis of ℚ (ζₙ). The reference is
 
 T. Breuer, Integral bases for subfields of cyclotomic fields AAECC 8 (1997)
 
@@ -86,7 +86,7 @@ implementations  in the  code. I  have currently  chosen the implementation
 with `ModuleElts` and systematic lowering as giving the best results.
 
 The main way to build a Cyclotomic number is to use the function `E(n,k=1)`
-which   constructs  the  `Root1`  equal  to   `ζₙᵏ`,  and  to  make  linear
+which  constructs  the  `Root1`  equal  to  `ζₙᵏ`,  and  then  make  linear
 combinations of such numbers.
 
 # Examples
@@ -333,7 +333,7 @@ function stringind(io::IO,n::Integer)
   end
 end
 
-#---- number theory utilities duplicated here to avoid dependency ----------
+#---- next function duplicated from Combinat to avoid dependency ----------
 "`CyclotomicNumbers.prime_residues(n)` the numbers less than `n` and prime to `n` "
 function prime_residues(n)
   if n==1 return [0] end
@@ -348,6 +348,13 @@ end
 using Primes: factor, eachfactor
 
 #------------------------ type Root1 ----------------------------------
+"""
+`Root1`  is a type representing roots of unity. The internal representation
+is  by a `Rational{Int}` of the form  `y//x` where the integers `y` and `x`
+satisfy  `0≤y<x`, representing the  root of unity  `ζₓʸ` (where `ζₓ` is the
+root  of  unity  whose  approximate  value  is  `exp(2im*π/x)`).  Efficient
+constructors are `Root1(;r=y//x)` and `E`.
+"""
 struct Root1 <: Number # E(c,n)
   r::Rational{Int}
   global Root1_(x)=new(x)
@@ -357,7 +364,10 @@ end
 modZ(x::Rational{<:Integer})=Base.unsafe_rational(mod(numerator(x),
                                     denominator(x)),denominator(x))
 
-" `E(n,p=1)` returns the `Root1` equal to `ζₙᵖ`"
+"""
+`E(n,p=1)`  returns the `Root1`  equal to `ζₙᵖ` (where  `ζₙ` is the root of
+unity whose approximate value is `exp(2im*π/n)`)
+"""
 E(c,n=1)=Root1_(modZ(n//c))
 
 Base.exponent(a::Root1)=numerator(a.r)
@@ -545,7 +555,7 @@ end
 end
   
 """
-`denominator(c::Cyc{Rational})`
+`denominator(c::Cyc{<:Rational})`
 
 returns   the   smallest   integer   `d`   such  that  `d*c`  has  integral
 `coefficients` (thus is an algebraic integer).
@@ -553,7 +563,7 @@ returns   the   smallest   integer   `d`   such  that  `d*c`  has  integral
 Base.denominator(c::Cyc)=lcm(denominator.(values(c.d)))
 
 """
-`numerator(c::Cyc{Rational})`
+`numerator(c::Cyc{<:Rational})`
 
 returns `denominator(c)*c` as a cyclotomic over the integers.
 """
@@ -979,8 +989,14 @@ function Cyc!(c,n,v)
     c.d.=v
   else
     c.n=n
-    resize!(c.d.d,length(v))
-    c.d.d.=v
+    if MM==ModuleElt 
+      resize!(c.d.d,length(v))
+      c.d.d.=v
+    else 
+      dv=Dict(v)
+      empty!(c.d.d)
+      merge!(c.d.d,dv)
+    end
   end
   c
 end
@@ -996,7 +1012,7 @@ end
 
 function lower!(c::Cyc) # write c in smallest Q(ζ_n) where it sits
   n=conductor(c)
- # println("lowering $(conductor(c)):$(c.d)")
+#  print("lowering conductor=",conductor(c));@show c.d
   if n==1 return c end
   if obviouslyzero(c)
     return Cyc!(c,1,impl==:MM ? empty(c.d.d) : impl==:vec ? zeros(valtype(c),1)
@@ -1205,8 +1221,8 @@ end
   
 determines  if  `c`  lives  in  a  quadratic  extension  of  `ℚ `. The call
 `q=Quadratic(c)`  returns a  struct `Quadratic`  with fields  `q.a`, `q.b`,
-`q.root`,  `q.den` representing `c` as `(q.a + q.b root(q.root))//q.den` if
-such a representation is possible or returns `q===nothing` otherwise.
+`q.root`,  `q.den` such that `c==(q.a + q.b root(q.root))//q.den` if such a
+representation is possible or returns `nothing` otherwise.
 
 # Examples
 ```julia-repl
@@ -1387,9 +1403,9 @@ Base.gcd(b::Number,a::Cyc)=gcd(gcd(collect(values(a.d))),b)
 # testmat(12)^2
 # 1.5.3 347.534 ms (4367402 allocations: 366.17 MiB)
 # 1.5.3 565.431 ms (5861810 allocations: 775.28 MiB) HModuleElts
-# 1.9.0 174.725 ms (1856571 allocations: 188.89 MiB)
 # 1.8.5 vec 265.328 ms (2111135 allocations: 234.22 MiB)
 # 1.8.5 svec 285.653 ms (3568605 allocations: 265.86 MiB)
+# 1.9.0 174.725 ms (1856571 allocations: 188.89 MiB)
 function testmat(p)
   ss=[[i,j] for i in 0:p-1 for j in i+1:p-1]
   [(E(p,i'*reverse(j))-E(p,i'*j))//p for i in ss,j in ss]
