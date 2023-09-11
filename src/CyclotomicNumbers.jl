@@ -378,8 +378,17 @@ Root1(;r=0//1)=Root1_(modZ(Rational{Int}(r)))
 
 function Root1(c::Real)
   if isone(c) Root1_(0//1)
-  elseif iszero(c) Cyc(0)
+# elseif iszero(c) Cyc(0)
   elseif c==-1 Root1_(1//2)
+  else nothing
+  end
+end
+
+function Root1(c::Complex)
+  if isone(c) Root1_(0//1)
+  elseif c==-1 Root1_(1//2)
+  elseif c==im Root1_(1//4)
+  elseif c==-im Root1_(3//4)
   else nothing
   end
 end
@@ -1165,8 +1174,9 @@ Base.adjoint(c::Cyc)=conj(c)
 """
 `Root1(c)`
     
-`c`  should be a cyclotomic number (a  `Cyc`), or a `Real`. `Root1` returns
-`E(n,e)` if `c==E(n,e)`, and `nothing` if `c` is not a root of unity.
+`c`  should  be  a  `Cyc`,  a  `Real`,  or  a `Complex`. `Root1(c)` returns
+`E(n,e)`  if `c==E(n,e)`, and  `nothing` if `c`  is not equal  to a root of
+unity.
 
 ```julia-repl
 julia> r=Root1(-E(9,2)-E(9,5))
