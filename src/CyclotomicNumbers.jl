@@ -1010,15 +1010,6 @@ function Cyc!(c,n,v)
   c
 end
 
-#---- defined here to avoid julia1.8 dependency ----------
-if VERSION.major==1 && VERSION.minor<8
-function allequal(a)
-  if isempty(a) return true end
-  o=first(a)
-  all(==(o),a)
-end
-end
-
 function lower!(c::Cyc) # write c in smallest Q(ζ_n) where it sits
   n=conductor(c)
 #  print("lowering conductor=",conductor(c));@show c.d
