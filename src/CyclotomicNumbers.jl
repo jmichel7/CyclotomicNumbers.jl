@@ -1374,7 +1374,7 @@ end
 
 const Crootdict=Dict{Tuple{Int,Cyc},Cyc}()
 function root(x::Cyc,n=2)
-  if isone(n) || isone(x) return x end
+  if isone(n) || isone(x) || iszero(x) return x end
   get!(Crootdict,(n,x)) do
   d=denominator(x)
   if d!=1 return root(numerator(x),n)//root(d,n) end
