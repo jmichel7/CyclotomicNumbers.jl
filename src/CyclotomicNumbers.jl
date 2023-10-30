@@ -1309,7 +1309,7 @@ function proot(x,n,r)
   if n!=2 xprint(",",n) end
   xprint(")=",r,"\n";quadratic=false)
 end
-const Irootdict=Dict{Tuple{Int,Int},Union{Cyc{Int},Int}}()
+const Irootdict=Dict{Tuple{Int,Int},Union{Cyc{Int},Int,Cyc{BigInt}}}()
 
 """
 `root(x,n=2)`
@@ -1329,7 +1329,7 @@ julia> root(27//8,6)
 Cyc{Rational{Int64}}: √6/2
 ```
 """
-function root(x::Int,n=2) # only defined for Int so no conflict with PuiseuxPols
+function root(x::Union{Int,BigInt},n=2) # only defined for Int so no conflict with PuiseuxPols
   if isone(n) || (!lazy && isone(x)) return x end
   if n==2 && x>=0 
     r=isqrt(x);if r^2==x return r end 
