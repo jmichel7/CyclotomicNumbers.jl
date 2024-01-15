@@ -750,6 +750,7 @@ end
 
 # p iterator of pairs i=>c meaning c*E(n,i)
 # This constructor is not in API since the result may or may not need lowering
+if true
 function Cyc(n::Integer,::Type{T},p) where T 
   res=if     impl==:vec  zeros(T,n)
       elseif impl==:svec spzeros(T,n)
@@ -762,12 +763,43 @@ function Cyc(n::Integer,::Type{T},p) where T
     else @inbounds view(res,v.+1).+=c
     end
   end
-if impl==:MM Cyc(n,MM(res))
-elseif impl==:svec Cyc(n,dropzeros!(res))
-else Cyc(n,res)
+  if impl==:MM Cyc(n,MM(res))
+  elseif impl==:svec Cyc(n,dropzeros!(res))
+  else Cyc(n,res)
+  end
+end
+else # attempt to be revisited
+function Cyc(n::Integer,::Type{T},p) where T 
+  if impl==:MM && length(p)==1
+    (i,c)=first(p)
+    (s,v)=Elist(n,mod(i,n))
+    if !s c=-c end
+    return Cyc(n,MM(v.=>c;check=iszero(c)))
+  end
+  res=if     impl==:vec  zeros(T,n)
+      elseif impl==:svec spzeros(T,n)
+      elseif impl==:MM 
+        (0:n-1).=>T(0)
+      end
+  for (i,c) in p
+    (s,v)=Elist(n,mod(i,n))
+    if !s c=-c end
+    if impl==:MM @inbounds for k in v res[k+1]=k=>last(res[k+1])+c end
+    else @inbounds view(res,v.+1).+=c
+    end
+  end
+  if impl==:MM 
+    i=0
+    for r in res
+    @inbounds  if !iszero(last(r)) res[i+=1]=r end
+    end
+    Cyc(n,MM(resize!(res,i);check=false))
+  elseif impl==:svec Cyc(n,dropzeros!(res))
+  else Cyc(n,res)
+  end
 end
 end
-  
+
 function Cyc(a::Root1) # the result is guaranteed lowered
   n=order(a)
   e=exponent(a)
@@ -1147,12 +1179,24 @@ end
 
 conjugates(c::Union{Rational{<:Integer},Integer})=[c]
 
+function Base.inv(c::Cyc{<:Integer})
+  if conductor(c)==1 return Cyc(inv(num(c))) end
+  l=conjugates(c)
+  r=l[2]
+  for t in l[3:end] r=*(r,t;reduce=false) end
+  a=num(*(c,r;reduce=true))
+# if isone(a) return r end
+# T<:Integer ? r//a : r/a
+  r//a
+end
+
 function Base.inv(c::Cyc)
   if conductor(c)==1 return Cyc(inv(num(c))) end
   l=conjugates(c)
   r=l[2]
   for t in l[3:end] r=*(r,t;reduce=false) end
-  r/num(*(c,r;reduce=true))
+  a=num(*(c,r;reduce=true))
+  r/a
 end
 
 Base.:^(a::Cyc, n::Integer)=n>=0 ? Base.power_by_squaring(a,n) :
