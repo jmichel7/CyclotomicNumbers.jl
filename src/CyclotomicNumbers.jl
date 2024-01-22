@@ -447,7 +447,7 @@ const impl=:MM # I tried 4 different implementations.
 # :vec is 50% slower than ModuleElt
 const lazy=false # whether to lower all the time or on demand
 
-if impl==:MM
+if impl==:vec
 struct Cyc{T <: Real}<: Number   # a cyclotomic number
   d::Vector{T} # length(d)==conductor; i-th element is the coefficient on ζⁱ⁻¹
   global function Cyc_(d::Vector{T}) where T<:Real 
