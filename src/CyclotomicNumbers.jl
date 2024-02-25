@@ -23,7 +23,7 @@ basis of ℚ (ζₙ). The reference is
 T. Breuer, Integral bases for subfields of cyclotomic fields AAECC 8 (1997)
 
 I  started  this  file  by  porting  Christian  Stump's Sage code, which is
-simpler  to understand than GAP's C  code. 
+simpler  to understand than GAP's C  code.
 
 As GAP does, I lower automatically numbers after each computation, that is,
 reduce  them to the smallest cyclotomic  field where they belong. Currently
@@ -112,7 +112,7 @@ julia> repr(E(12,11)-E(12,7),context=(:limit=>true,:quadratic=>false))
 julia> a=E(3)+E(3,2)
 Cyc{Int64}: -1
 
-julia> conductor(a) # a has been lowered to ℚ (ζ₁)=ℚ 
+julia> conductor(a) # a has been lowered to ℚ (ζ₁)=ℚ
 1
 
 julia> typeof(Int(a))
@@ -254,13 +254,13 @@ julia> valtype(a) # the type of the coefficients of a
 Int64
 ```
 
-For more information see the docstring for the methods Quadratic, 
+For more information see the docstring for the methods Quadratic,
 galois, root, conjugates.
 
 Finally, a benchmark:
 
 ```benchmark
-julia> function testmat(p) 
+julia> function testmat(p)
          ss=[[i,j] for i in 0:p-1 for j in i+1:p-1]
          [(E(p,i'*reverse(j))-E(p,i'*j))//p for i in ss,j in ss]
        end
@@ -274,12 +274,12 @@ The equivalent in GAP:
 ```
 testmat:=function(p)local ss;ss:=Combinations([0..p-1],2);
   return List(ss,i->List(ss,j->(E(p)^(i*Reversed(j))-E(p)^(i*j))/p));
-end; 
+end;
 ```
 testmat(12)^2 takes 0.31s in GAP3, 0.22s in GAP4
 """
 module CyclotomicNumbers
-export coefficients, root, E, Cyc, conductor, galois, Root1, Quadratic, 
+export coefficients, root, E, Cyc, conductor, galois, Root1, Quadratic,
        order, conjugates, modZ
 
 #---- formatting utilities duplicated here to avoid dependency ----------
@@ -294,7 +294,7 @@ function bracket_if_needed(c::String;allow_frac=false)
   while(match(par,u)!=nothing) u=replace(u,par=>"") end
   e=allow_frac ? nobf : nob
   if match(e,u)!==nothing c
-  else "("*c*")" 
+  else "("*c*")"
   end
 end
 
@@ -309,11 +309,11 @@ end
 # format exponent as unicode or TeX
 function stringexp(io::IO,n::Integer)
   if isone(n) ""
-  elseif get(io,:TeX,false) 
+  elseif get(io,:TeX,false)
     "^"*(n in 0:9 ? string(n) : "{"*string(n)*"}")
   elseif get(io,:limit,false)
     if n<0 res=['⁻']; n=-n else res=Char[] end
-    for i in reverse(digits(n)) 
+    for i in reverse(digits(n))
       push!(res,['⁰','¹','²','³','⁴','⁵','⁶','⁷','⁸','⁹'][i+1])
     end
     String(res)
@@ -323,7 +323,7 @@ end
 
 # format index as unicode or TeX
 function stringind(io::IO,n::Integer)
-  if get(io,:TeX,false) 
+  if get(io,:TeX,false)
     n in 0:9 ? "_"*string(n) : "_{"*string(n)*"}"
   elseif get(io,:limit,false)
     if n<0 res=['₋']; n=-n else res=Char[] end
@@ -439,7 +439,7 @@ Base.:/(a::Root1,b::Root1)=a*inv(b)
 Base.://(a::Root1,b::Root1)=a/b
 
 #------------------------ type Cyc ----------------------------------
-const impl=:MM # I tried 4 different implementations. 
+const impl=:MM # I tried 4 different implementations.
 # For testmat(12)^2
 # :MM,ModuleElt is fastest
 # :MM,HModuleElt is 70% slower than ModuleElt
@@ -450,7 +450,7 @@ const lazy=false # whether to lower all the time or on demand
 if impl==:vec
 struct Cyc{T <: Real}<: Number   # a cyclotomic number
   d::Vector{T} # length(d)==conductor; i-th element is the coefficient on ζⁱ⁻¹
-  global function Cyc_(d::Vector{T}) where T<:Real 
+  global function Cyc_(d::Vector{T}) where T<:Real
     new{T}(d)
   end
 end
@@ -464,7 +464,7 @@ elseif impl==:svec
 using SparseArrays
 mutable struct Cyc{T <: Real}<:Number    # a cyclotomic number
   d::SparseVector{T,Int} # d[i]==coeff on ζⁱ⁻¹ (where i∈ zumbroich_basis(n))
-  global function Cyc_(d::SparseVector{T}) where T<:Real 
+  global function Cyc_(d::SparseVector{T}) where T<:Real
 #   for debugging you may uncomment the following line
 #   if !issorted(d.nzind) || any(iszero,d.nzval) error(d) end
     new{T}(d)
@@ -518,7 +518,7 @@ conductor(i::Integer)=1 # for convenience
 conductor(i::Rational{<:Integer})=1 # for convenience
 
 """
-  CyclotomicNumbers.zumbroich_basis(n::Int) 
+  CyclotomicNumbers.zumbroich_basis(n::Int)
 
   returns  the Zumbroich basis of ℚ (ζₙ) as the sorted vector of i in 0:n-1
   such that `ζₙⁱ` is in the basis.
@@ -529,7 +529,7 @@ function zumbroich_basis(n::Int)
   function J(k::Int, p::Int) # see [Breuer] Rem. 1 p. 283
     k==0 ? (p==2 ? (0:0) : (1:p-1)) : p==2 ? (0:1) : (div(1-p,2):div(p-1,2))
   end
-  sort(vec(sum.(Iterators.product((div(n,p^k)*J(k-1,p) 
+  sort(vec(sum.(Iterators.product((div(n,p^k)*J(k-1,p)
        for (p,np) in eachfactor(n) for k in 1:np)...))).%n)
 end
 
@@ -562,7 +562,7 @@ else
   res
 end
 end
-  
+
 """
 `denominator(c::Cyc{<:Rational})`
 
@@ -642,7 +642,7 @@ function Base.convert(::Type{T},c::Cyc;check=true)where T<:AbstractFloat
   real(convert(Complex{T},c))
 end
 
-function (::Type{T})(c::Cyc)where T<:AbstractFloat 
+function (::Type{T})(c::Cyc)where T<:AbstractFloat
   convert(T,c;check=true)
 end
 
@@ -655,7 +655,7 @@ end
 function Complex{T}(c::Cyc)where T<:Union{Integer,Rational}
   @static if lazy lower!(c) end
   if conductor(c)==1 return Complex{T}(num(c)) end
-  if conductor(c)==4 
+  if conductor(c)==4
     res=Complex{T}(0)
     for (k,v) in pairs(c)
       res+=k==0 ? v : im*v
@@ -666,7 +666,7 @@ function Complex{T}(c::Cyc)where T<:Union{Integer,Rational}
 end
 
 Complex{T}(a::Root1) where T=Complex{T}(Cyc(a))
-function Base.complex(c::Cyc{T}) where T 
+function Base.complex(c::Cyc{T}) where T
   @static if lazy lower!(c) end
   (conductor(c)==1||conductor(c)==4) ? Complex{T}(c) : Complex{float(T)}(c)
 end
@@ -703,7 +703,7 @@ Base.abs2(a::Root1)=abs2(Cyc(a))
 Base.abs(a::Root1)=one(a)
 
 # memoize Elist
-const Elist_dict=Dict{Tuple{Int,Int},Pair{Bool,Vector{Int}}}((1,0)=>(true=>[0])) 
+const Elist_dict=Dict{Tuple{Int,Int},Pair{Bool,Vector{Int}}}((1,0)=>(true=>[0]))
 """
 `CyclotomicNumbers.Elist(n,i)`
 
@@ -751,7 +751,7 @@ end
 # p iterator of pairs i=>c meaning c*E(n,i)
 # This constructor is not in API since the result may or may not need lowering
 if true
-function Cyc(n::Integer,::Type{T},p) where T 
+function Cyc(n::Integer,::Type{T},p) where T
   res=if     impl==:vec  zeros(T,n)
       elseif impl==:svec spzeros(T,n)
       elseif impl==:MM   Pair{Int,T}[]
@@ -763,22 +763,23 @@ function Cyc(n::Integer,::Type{T},p) where T
     else @inbounds view(res,v.+1).+=c
     end
   end
-  if impl==:MM Cyc(n,MM(res))
+  if impl==:MM Cyc(n,MM(res))::Cyc{T}
   elseif impl==:svec Cyc(n,dropzeros!(res))
   else Cyc(n,res)
   end
 end
 else # attempt to be revisited
-function Cyc(n::Integer,::Type{T},p) where T 
+function Cyc(n::Integer,::Type{T},p) where T
   if impl==:MM && length(p)==1
     (i,c)=first(p)
+    if iszero(c) return zero(Cyc{T}) end
     (s,v)=Elist(n,mod(i,n))
     if !s c=-c end
-    return Cyc(n,MM(v.=>c;check=iszero(c)))
+    return Cyc(n,MM(v.=>c;check=false))
   end
   res=if     impl==:vec  zeros(T,n)
       elseif impl==:svec spzeros(T,n)
-      elseif impl==:MM 
+      elseif impl==:MM
         (0:n-1).=>T(0)
       end
   for (i,c) in p
@@ -866,7 +867,7 @@ function normal_show(io::IO,p::Cyc)
   res=""
   for (deg,v) in pairs(p)
     if deg==0 t=string(v)
-    else 
+    else
       t=format_coefficient(string(v))
       if repl || TeX
         r=(TeX ? "\\zeta" : "ζ")*stringind(io,conductor(p))*stringexp(io,deg)
@@ -879,7 +880,7 @@ function normal_show(io::IO,p::Cyc)
     res*=t
   end
   if res[1]=='+' res=res[2:end] end
-  if !isone(den) 
+  if !isone(den)
     res=bracket_if_needed(res)
     res*=repl||TeX ? "/$den" : "//$den"
   end
@@ -1017,7 +1018,7 @@ Base.:/(a::Cyc,c::Cyc)=a*inv(c)
 Base.div(c::Root1,a)=div(Cyc(c),a)
 
 # change c to have data n,v
-function Cyc!(c,n,v) 
+function Cyc!(c,n,v)
   if impl==:svec
     c.d=v
   elseif impl==:vec
@@ -1025,10 +1026,10 @@ function Cyc!(c,n,v)
     c.d.=v
   else
     c.n=n
-    if MM==ModuleElt 
+    if MM==ModuleElt
       resize!(c.d.d,length(v))
       c.d.d.=v
-    else 
+    else
       dv=Dict(v)
       empty!(c.d.d)
       merge!(c.d.d,dv)
@@ -1049,8 +1050,8 @@ function lower!(c::Cyc) # write c in smallest Q(ζ_n) where it sits
     m=div(n,p)
 if impl==:vec
     kk=Iterators.filter(i->c.d[i]!=0,eachindex(c.d))
-    if np>1 
-      if all(k->(k-1)%p==0,kk) 
+    if np>1
+      if all(k->(k-1)%p==0,kk)
         v=zeros(valtype(c),m)
         for x in kk v[1+div(x-1,p)]=c.d[x] end
         return lower!(Cyc!(c,m,v))
@@ -1063,7 +1064,7 @@ if impl==:vec
       resize!(u,i)
       @. u=div(u+m*mod(-u,p)*invmod(m,p),p)%m
       v=zeros(valtype(c),m)
-      if p==2  
+      if p==2
         @views @. v[u+1].=c.d[1+(u*p)%n]
         return lower!(Cyc!(c,m,v))
       elseif all(k->allequal(c.d[1+(m*i+k*p)%n] for i in 1:p-1),u)
@@ -1074,8 +1075,8 @@ if impl==:vec
 elseif impl==:svec
     kk=c.d.nzind
     val=c.d.nzval
-    if np>1 
-      if all(k->(k-1)%p==0,kk) 
+    if np>1
+      if all(k->(k-1)%p==0,kk)
         return lower!(Cyc!(c,m,SparseVector(m,map(x->1+div(x-1,p),kk),val)))
       end
     elseif iszero(length(kk)%(p-1))
@@ -1086,15 +1087,15 @@ elseif impl==:svec
       resize!(u,i)
       @. u=div(u+m*mod(-u,p)*invmod(m,p),p)%m
       if !issorted(u) sort!(u) end
-      if p==2  
+      if p==2
         return lower!(Cyc!(c,m,SparseVector(m,u.+1,[c.d[1+(k*p)%n] for k in u])))
       elseif all(k->allequal(c.d[1+(m*i+k*p)%n] for i in 1:p-1),u)
         return lower!(Cyc!(c,m,SparseVector(m,u.+1,[-c.d[1+(m+k*p)%n] for k in u])))
       end
     end
 elseif impl==:MM
-    if np>1 
-      if all(k->first(k)%p==0,c.d) 
+    if np>1
+      if all(k->first(k)%p==0,c.d)
         return lower!(Cyc!(c,m,div(k,p)=>v for (k,v) in c.d))
       end
     elseif iszero(length(c.d)%(p-1))
@@ -1104,7 +1105,7 @@ elseif impl==:MM
       i=0; for j in eachindex(u) if !iszero(u[j]) i+=1;u[i]=j-1 end end
       resize!(u,i)
       @. u=div(u+m*mod(-u,p)*invmod(m,p),p)%m
-      if p==2  
+      if p==2
         v=[k=>c.d[(k*p)%n] for k in u];if !issorted(v) sort!(v) end
         return lower!(Cyc!(c,m,v))
       elseif all(k->allequal(c.d[(m*i+k*p)%n] for i in 1:p-1),u)
@@ -1135,7 +1136,7 @@ true
 ```
 """
 function galois(c::Cyc,n::Integer)
-  if gcd(n,conductor(c))!=1 
+  if gcd(n,conductor(c))!=1
     throw(DomainError(n,"should be prime to conductor $(conductor(c))"))
   end
   if obviouslyzero(c) return c end
@@ -1181,8 +1182,7 @@ function Base.inv(c::Cyc{<:Integer})
   for t in l[3:end] r=*(r,t;reduce=false) end
   a=num(*(c,r;reduce=true))
 # if isone(a) return r end
-# T<:Integer ? r//a : r/a
-  r//a
+  r//a # and not r/a
 end
 
 function Base.inv(c::Cyc)
@@ -1203,7 +1203,7 @@ Base.adjoint(c::Cyc)=conj(c)
 
 """
 `Root1(c)`
-    
+
 `c`  should  be  a  `Cyc`,  a  `Real`,  or  a `Complex`. `Root1(c)` returns
 `E(n,e)`  if `c==E(n,e)`, and  `nothing` if `c`  is not equal  to a root of
 unity.
@@ -1223,7 +1223,7 @@ Cyc{Int64}: -ζ₉²-ζ₉⁵
 
 julia> Root1(-E(9,4)-E(9,5)) # nothing
 ```
-""" 
+"""
 function Root1(c::Cyc)
   @static if lazy lower!(c) end
   if !(all(x->last(x)==1,pairs(c)) || all(x->last(x)==-1,pairs(c)))
@@ -1257,8 +1257,8 @@ struct Quadratic
 end
 
 """
-  `Quadratic(c::Cyc)` 
-  
+  `Quadratic(c::Cyc)`
+
 determines  if  `c`  lives  in  a  quadratic  extension  of  `ℚ `. The call
 `q=Quadratic(c)`  returns a  struct `Quadratic`  with fields  `q.a`, `q.b`,
 `q.root`,  `q.den` such that `c==(q.a + q.b root(q.root))//q.den` if such a
@@ -1329,7 +1329,7 @@ function Base.show(io::IO,q::Quadratic)
   repl=get(io,:limit,false)
   TeX=get(io,:TeX,false)
   rq=string(q.a)
-  if q.b!=0 
+  if q.b!=0
     if iszero(q.a) rq=""
     elseif q.b>0 rq*="+" end
     rq*=q.b==1 ? "" : q.b==-1 ? "-" : string(q.b)
@@ -1370,14 +1370,14 @@ Cyc{Rational{Int64}}: √6/2
 """
 function root(x::Union{Int,BigInt},n=2) # only defined for Int so no conflict with PuiseuxPols
   if isone(n) || (!lazy && isone(x)) return x end
-  if n==2 && x>=0 
-    r=isqrt(x);if r^2==x return r end 
+  if n==2 && x>=0
+    r=isqrt(x);if r^2==x return r end
   end
   get!(Irootdict,(n,x)) do
     if x==1 || (x==-1 && isodd(n)) return x end
     if x<0 && n==2 return E(4)*root(-x) end
     l=factor(x)
-    if any(y->(2y)%n!=0,values(l)) 
+    if any(y->(2y)%n!=0,values(l))
       if x==-1 return root(E(2),n) end
       error("root($x,$n) not implemented")
     end
@@ -1420,7 +1420,7 @@ function root(x::Cyc,n=2)
   d=gcd(coefficients(x))
   if d!=1 return root(div(x,d),n)*root(d,n) end
     r=Root1(x)
-    if isnothing(r) 
+    if isnothing(r)
       if conductor(x)>1 error("cannot compute root($x,$n)") end
       return root(num(x),n)
     end
