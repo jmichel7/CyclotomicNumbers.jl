@@ -477,7 +477,7 @@ function Cyc(c::Integer,v::SparseVector)
 end
 
 elseif impl==:MM
-using ModuleElts
+using ModuleElts: ModuleElt, HModuleElt
 const MM=ModuleElt # you can try with HModuleElt
 mutable struct Cyc{T <: Real}<: Number   # a cyclotomic number
   n::Int
@@ -978,12 +978,22 @@ end
 
 function Base.div(c::Cyc,a::Real)
 if impl==:MM
-  n=merge(div,c.d,a)
+  n=div(c.d,a)
   Cyc(iszero(n) ? 1 : conductor(c),n)
 else
   res=div.(c.d,a)
   iszero(res) ? Cyc{eltype(res)}(0) : Cyc(conductor(c),res)
 end
+end
+
+using LinearAlgebra: LinearAlgebra, exactdiv
+
+LinearAlgebra.exactdiv(c::Cyc{<:Integer},a::Integer)=Cyc(conductor(c), exactdiv(c.d,a))
+
+function LinearAlgebra.exactdiv(c::Cyc{<:Integer},a::Cyc{<:Integer})
+  res=c//a
+  if denominator(res)!=1 error(a," does not divide exactly ",c) end
+  numerator(res)
 end
 
 function Base.:*(c::Cyc,a::Real)
