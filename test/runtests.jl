@@ -1,23 +1,16 @@
 # auto-generated tests from julia-repl docstrings
 using Test, CyclotomicNumbers
-function mytest(f::String,a::String,b::String)
-  println(f," ",a)
-  omit=a[end]==';'
-  a=replace(a,"\\\\"=>"\\")
-  a=repr(MIME("text/plain"),eval(Meta.parse(a)),context=:limit=>true)
-  if omit a="nothing" end
-  a=replace(a,r" *(\n|$)"s=>s"\1")
-  a=replace(a,r"\n$"s=>"")
-  b=replace(b,r" *(\n|$)"s=>s"\1")
-  b=replace(b,r"\n$"s=>"")
-  i=1
-  while i<=lastindex(a) && i<=lastindex(b) && a[i]==b[i]
-    i=nextind(a,i)
-  end
-  if a!=b print("exec=$(repr(a[i:end]))\nmanl=$(repr(b[i:end]))\n") end
-  a==b
+function mytest(file::String,cmd::String,man::String)
+  println(file," ",cmd)
+  exec=repr(MIME("text/plain"),eval(Meta.parse(cmd)),context=:limit=>true)
+  if endswith(cmd,";") return true end
+  exec=replace(exec,r"\s*$"m=>""); exec=replace(exec,r"\s*$"s=>"")
+  exec=replace(exec,r"^\s*"=>"")
+  if exec==man return true end
+  i=findfirst(i->i<=lastindex(man) && exec[i]!=man[i],collect(eachindex(exec)))
+  print("exec=$(repr(exec[i:end]))\nmanl=$(repr(man[i:end]))\n")
+  false
 end
-@testset verbose = true "Gapjm" begin
 @testset "CyclotomicNumbers.jl" begin
 @test mytest("CyclotomicNumbers.jl","E(3,2)","Root1: ζ₃²")
 @test mytest("CyclotomicNumbers.jl","E(3)+E(4)","Cyc{Int64}: ζ₁₂⁴-ζ₁₂⁷-ζ₁₂¹¹")
@@ -50,9 +43,14 @@ end
 @test mytest("CyclotomicNumbers.jl","a[6],a[7]","(0, -1)")
 @test mytest("CyclotomicNumbers.jl","coefficients(a)","12-element Vector{Int64}:\n  0\n  0\n  0\n  0\n  1\n  0\n  0\n -1\n  0\n  0\n  0\n -1")
 @test mytest("CyclotomicNumbers.jl","valtype(a)","Int64")
-@test mytest("CyclotomicNumbers.jl","conductor(E(9))","9")
+@test isless(E(2),0)
+@test_throws DomainError isless(E(3),0)
+@test isless(-2,E(2))
+@test_throws DomainError isless(0,E(3))
+@test mytest("CyclotomicNumbers.jl","conductor(E(6))","3")
 @test mytest("CyclotomicNumbers.jl","conductor([E(3),1//2,E(4)])","12")
 @test mytest("CyclotomicNumbers.jl","coefficients(Cyc(E(9)))","9-element Vector{Int64}:\n  0\n  0\n  0\n  0\n -1\n  0\n  0\n -1\n  0")
+@test Cyc(E(6,5))==-Cyc(E(3))
 @test mytest("CyclotomicNumbers.jl","galois(1+E(4),-1)","Cyc{Int64}: 1-ζ₄")
 @test mytest("CyclotomicNumbers.jl","galois(root(5),2)==-root(5)","true")
 @test mytest("CyclotomicNumbers.jl","conjugates(1+root(5))","2-element Vector{Cyc{Int64}}:\n 1+√5\n 1-√5")

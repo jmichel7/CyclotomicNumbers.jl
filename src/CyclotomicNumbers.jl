@@ -105,8 +105,7 @@ E(12,4)-E(12,7)-E(12,11)
 julia> E(12,11)-E(12,7) # square roots of integers are recognized on output
 Cyc{Int64}: √3
 
-# but you can prevent that recognition
-julia> repr(E(12,11)-E(12,7),context=(:limit=>true,:quadratic=>false))
+julia> repr(E(12,11)-E(12,7),context=(:limit=>true,:quadratic=>false)) # but you can prevent that recognition
 "-ζ₁₂⁷+ζ₁₂¹¹"
 
 julia> a=E(3)+E(3,2)
@@ -418,12 +417,24 @@ end
 function Base.cmp(a::Root1,b::Root1)
   r=cmp(conductor(a),conductor(b))
   if !iszero(r) return r end
+  if a==b return 0 end
+  if conductor(a)==1 return cmp(exponent(a),exponent(b)) end
   cmp(Cyc(a),Cyc(b))
 end
 
 Base.isless(a::Root1,b::Root1)=cmp(a,b)==-1
-Base.isless(c::Root1,d::Real)=Cyc(c)<Cyc(d)
-Base.isless(d::Real,c::Root1)=Cyc(d)<Cyc(c)
+Base.isless(c::Root1,d::Real)=
+  if conductor(c)==1 isless((-1)^exponent(c),d)
+  else throw(DomainError(c," is not real"))
+  end
+#@test isless(E(2),0)
+#@test_throws DomainError isless(E(3),0)
+Base.isless(d::Real,c::Root1)=
+  if conductor(c)==1 isless(d,(-1)^exponent(c))
+  else throw(DomainError(c," is not real"))
+  end
+#@test isless(-2,E(2))
+#@test_throws DomainError isless(0,E(3))
 Base.:(==)(a::Root1,b::Root1)=a.r==b.r
 Base.one(a::Root1)=Root1_(0//1)
 Base.zero(a::Root1)=zero(Cyc{Int})
@@ -745,13 +756,20 @@ function Elist(n::Int,i::Int)
     v=vec(sum.(Iterators.product((div(n,p)*(1:p-1) for p in mp)...)))
     v=sort((i.+v).%n)
     iseven(length(mp))=>v
-  end
+   end
 end
 
 # p iterator of pairs i=>c meaning c*E(n,i)
 # This constructor is not in API since the result may or may not need lowering
 if true
 function Cyc(n::Integer,::Type{T},p) where T
+  if impl==:MM && length(p)==1
+    (i,c)=first(p)
+    if iszero(c) return zero(Cyc{T}) end
+    (s,v)=Elist(n,mod(i,n))
+    if !s c=-c end
+    return Cyc(n,MM(v.=>T(c);check=false))
+  end
   res=if     impl==:vec  zeros(T,n)
       elseif impl==:svec spzeros(T,n)
       elseif impl==:MM   Pair{Int,T}[]
@@ -801,6 +819,7 @@ function Cyc(a::Root1) # the result is guaranteed lowered
   e=exponent(a)
   n%4==2 ? Cyc(div(n,2),Int,(div(e,2)+div(n+2,4)=>-1,)) : Cyc(n,Int,(e=>1,))
 end
+#@test Cyc(E(6,5))==-Cyc(E(3))
 
 function Base.promote_rule(a::Type{Cyc{T1}},b::Type{T2})where {T1,T2<:Real}
   Cyc{promote_type(T1,T2)}
@@ -815,12 +834,12 @@ function Base.promote_rule(a::Type{Cyc{T1}},b::Type{Cyc{T2}})where {T1,T2}
 end
 
 # total order is necessary to put Cycs in a sorted list
-# for conductor(c)==1  a<b is as expected
+# for conductor(c)==1  a<b compares correctly real(a) and real(b)
 function Base.cmp(a::Cyc,b::Cyc)
   @static if lazy lower!(a);lower!(b) end
   t=cmp(conductor(a),conductor(b))
   if !iszero(t) return t end
-  conductor(a)==1 ? cmp(num(a),num(b)) : cmp(a.d,b.d)
+  cmp(a.d,b.d)
 end
 
 if lazy
@@ -833,8 +852,10 @@ else
 Base.:(==)(a::Cyc,b::Cyc)=conductor(a)==conductor(b) && a.d==b.d
 end
 Base.isless(a::Cyc,b::Cyc)=cmp(a,b)==-1
-Base.isless(c::Cyc,d::Real)=c<Cyc(d)
-Base.isless(d::Real,c::Cyc)=Cyc(d)<c
+Base.isless(c::Cyc,d::Real)=
+  conductor(c)==1 ? isless(num(c),d) : isless(Float64(c),d)
+Base.isless(d::Real,c::Cyc)=
+  conductor(c)==1 ? isless(d,num(c)) : isless(d,Float64(c))
 Base.isless(a::Root1,b::Cyc)=Cyc(a)<b
 Base.isless(a::Cyc,b::Root1)=a<Cyc(b)
 
