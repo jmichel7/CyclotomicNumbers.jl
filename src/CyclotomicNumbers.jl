@@ -418,7 +418,7 @@ function Base.cmp(a::Root1,b::Root1)
   r=cmp(conductor(a),conductor(b))
   if !iszero(r) return r end
   if a==b return 0 end
-  if conductor(a)==1 return cmp(exponent(a),exponent(b)) end
+  if conductor(a)==1 return -cmp(exponent(a),exponent(b)) end
   cmp(Cyc(a),Cyc(b))
 end
 
@@ -428,6 +428,7 @@ Base.isless(c::Root1,d::Real)=
   else throw(DomainError(c," is not real"))
   end
 #@test isless(E(2),0)
+#@test isless(E(2),E(1))
 #@test_throws DomainError isless(E(3),0)
 Base.isless(d::Real,c::Root1)=
   if conductor(c)==1 isless(d,(-1)^exponent(c))
@@ -839,8 +840,10 @@ function Base.cmp(a::Cyc,b::Cyc)
   @static if lazy lower!(a);lower!(b) end
   t=cmp(conductor(a),conductor(b))
   if !iszero(t) return t end
+  if conductor(a)==1 return cmp(num(a),num(b)) end #needed if a==0 or b==0
   cmp(a.d,b.d)
 end
+#@test isless(Cyc(-1),Cyc(0))
 
 if lazy
 function Base.:(==)(a::Cyc,b::Cyc)
