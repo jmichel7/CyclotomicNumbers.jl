@@ -279,7 +279,7 @@ testmat(12)^2 takes 0.31s in GAP3, 0.22s in GAP4
 """
 module CyclotomicNumbers
 export coefficients, root, E, Cyc, conductor, galois, Root1, Quadratic,
-       order, conjugates, modZ
+       order, conjugates, modZ, ζ, ze
 
 #---- formatting utilities duplicated here to avoid dependency ----------
 const ok="^[-+]?([^-+*/]|√-|{-)*"
@@ -369,6 +369,8 @@ unity whose approximate value is `exp(2im*π/n)`)
 """
 E(c,n=1)=Root1_(modZ(n//c))
 
+const ζ=E
+const ze=E
 Base.exponent(a::Root1)=numerator(a.r)
 order(a::Root1)=denominator(a.r)
 conductor(a::Root1)=order(a)%4==2 ? div(order(a),2) : order(a)
