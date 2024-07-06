@@ -1049,7 +1049,7 @@ Base.://(a::Union{Cyc,Real,Root1},c::Cyc)=a*inv(
                                Cyc{promote_type(valtype(c),Rational{Int})}(c))
 Base.://(c::Root1,a::Real)=Cyc(c)//a
 Base.://(a::Union{Real,Cyc},c::Root1)=a//Cyc(c)
-Base.:/(c::Cyc,a::Real)=c*inv(a)
+Base.:/(c::Cyc,a::Real)=Cyc(conductor(c),impl==:MM ? c.d/a : c.d./a)
 Base.:/(a::Cyc,c::Cyc)=a*inv(c)
 Base.div(c::Root1,a)=div(Cyc(c),a)
 
