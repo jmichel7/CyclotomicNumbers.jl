@@ -279,7 +279,7 @@ testmat(12)^2 takes 0.31s in GAP3, 0.22s in GAP4
 """
 module CyclotomicNumbers
 export coefficients, root, E, Cyc, conductor, galois, Root1, Quadratic,
-       order, conjugates, modZ, ζ, ze
+       order, conjugates, modZ, ζ, zeta
 
 #---- formatting utilities duplicated here to avoid dependency ----------
 const ok="^[-+]?([^-+*/]|√-|{-)*"
@@ -356,40 +356,38 @@ constructors are `Root1(;r=y//x)` and `E`.
 """
 struct Root1 <: Number # E(c,n)
   r::Rational{Int}
-  global Root1_(x)=new(x)
+  Root1(;r)=new(modZ(Rational{Int}(r)))
 end
 
+
 "`modZ(x::Rational{<:Integer})` returns `x mod ℤ ` as a rational in `[0,1[`"
-modZ(x::Rational{<:Integer})=Base.unsafe_rational(mod(numerator(x),
-                                    denominator(x)),denominator(x))
+modZ(x::Rational{<:Integer})=0<=numerator(x)<denominator(x) ? x : 
+      Base.unsafe_rational(mod(numerator(x),denominator(x)),denominator(x))
 
 """
 `E(n,p=1)`  returns the `Root1`  equal to `ζₙᵖ` (where  `ζₙ` is the root of
 unity whose approximate value is `exp(2im*π/n)`)
 """
-E(c,n=1)=Root1_(modZ(n//c))
+E(c,n=1)=Root1(;r=n//c)
 
 const ζ=E
-const ze=E
+const zeta=E
 Base.exponent(a::Root1)=numerator(a.r)
 order(a::Root1)=denominator(a.r)
 conductor(a::Root1)=order(a)%4==2 ? div(order(a),2) : order(a)
 
-Root1(;r=0//1)=Root1_(modZ(Rational{Int}(r)))
-
 function Root1(c::Real)
-  if isone(c) Root1_(0//1)
-# elseif iszero(c) Cyc(0)
-  elseif c==-1 Root1_(1//2)
+  if isone(c) E(1)
+  elseif c==-1 E(2)
   else nothing
   end
 end
 
 function Root1(c::Complex)
-  if isone(c) Root1_(0//1)
-  elseif c==-1 Root1_(1//2)
-  elseif c==im Root1_(1//4)
-  elseif c==-im Root1_(3//4)
+  if isone(c) E(1)
+  elseif c==-1 E(2)
+  elseif c==im E(4)
+  elseif c==-im E(4,3)
   else nothing
   end
 end
@@ -439,15 +437,14 @@ Base.isless(d::Real,c::Root1)=
 #@test isless(-2,E(2))
 #@test_throws DomainError isless(0,E(3))
 Base.:(==)(a::Root1,b::Root1)=a.r==b.r
-Base.one(a::Root1)=Root1_(0//1)
+Base.one(a::Root1)=E(1)
 Base.zero(a::Root1)=zero(Cyc{Int})
 Base.isone(a::Root1)=iszero(a.r)
 Base.iszero(a::Root1)=false
-Base.:*(a::Root1,b::Root1)=Root1_(modZ(a.r+b.r))
-
-Base.:^(a::Root1,n::Integer)=Root1_(modZ(n*a.r))
+Base.:*(a::Root1,b::Root1)=Root1(;r=a.r+b.r)
+Base.:^(a::Root1,n::Integer)=Root1(;r=n*a.r)
 Base.:^(a::Root1,r::Rational{<:Integer})=root(a,denominator(r))^numerator(r)
-Base.inv(a::Root1)=Root1_(modZ(-a.r))
+Base.inv(a::Root1)=Root1(;r=-a.r)
 Base.conj(a::Root1)=inv(a)
 Base.:/(a::Root1,b::Root1)=a*inv(b)
 Base.://(a::Root1,b::Root1)=a/b
@@ -1025,8 +1022,7 @@ end
 function Base.:*(c::Cyc,a::Real)
   # the check for one saves a lot of time in some applications
   if isone(a) return Cyc{promote_type(valtype(c),typeof(a))}(c) end
-  if iszero(a) return zero(Cyc{promote_type(valtype(c),typeof(a))}) end
-  Cyc(conductor(c),c.d*a)
+  Cyc(iszero(a) ? 1 : conductor(c),c.d*a)
 end
 Base.:*(a::Real,c::Cyc)=c*a
 
@@ -1034,9 +1030,8 @@ function Base.:*(a::Cyc,b::Cyc;reduce=!lazy)
   a,b=promote(a,b)
   if obviouslyzero(a) return a end
   if obviouslyzero(b) return b end
-  if conductor(a)==1 return b*num(a)
-  elseif conductor(b)==1 return a*num(b)
-  end
+  if conductor(a)==1 return b*num(a) end
+  if conductor(b)==1 return a*num(b) end
   n=lcm(conductor(a),conductor(b))
   na=div(n,conductor(a))
   nb=div(n,conductor(b))
@@ -1173,16 +1168,19 @@ true
 """
 function galois(c::Cyc,n::Integer)
   if gcd(n,conductor(c))!=1
-    throw(DomainError(n,"should be prime to conductor $(conductor(c))"))
+    throw(DomainError(n,"not prime to conductor $(conductor(c))"))
   end
   if obviouslyzero(c) return c end
   Cyc(conductor(c),valtype(c),e*n=>p for (e,p) in pairs(c))
 end
 
 function galois(c::Root1,n::Integer)
-  d=order(c)
-  if gcd(n,d)!=1 error("$n should be prime to order($c)=$d") end
-  Root1(;r=n*c.r)
+  if gcd(n,conductor(c))!=1
+    throw(DomainError(n,"not prime to conductor $(conductor(c))"))
+  end
+  if order(c)%4==2 Root1(;r=n*c.r+(n-1)//2)
+  else Root1(;r=n*c.r)
+  end
 end
 
 Base.conj(c::Cyc)=galois(c,-1)
@@ -1202,7 +1200,7 @@ julia> conjugates(1+root(5))
 """
 function conjugates(c::Union{Cyc,Root1}) # Root1 or Cyc
   res=[c]
-  for i in prime_residues(c isa Cyc ? conductor(c) : order(c))[2:end]
+  for i in prime_residues(conductor(c))[2:end]
     c1=galois(c,i)
     if !(c1 in res) push!(res,c1) end
   end
@@ -1267,12 +1265,8 @@ function Root1(c::Cyc)
   end
   n=conductor(c)
   for i in prime_residues(n)
-    if c==E(n,i) return Root1_(i//n) end
-    if -c==E(n,i)
-      if iseven(n) return E(n,div(n,2)+i)
-      else return E(2n,n+2*i)
-      end
-    end
+    if c==E(n,i) return E(n,i) end
+    if isodd(n) && -c==E(n,i) return E(2n,n+2*i) end
   end
   # return nothing
 end
@@ -1476,6 +1470,7 @@ end
 Base.gcd(a::Cyc,b::Number)=gcd(gcd(collect(values(a.d))),b)
 Base.gcd(b::Number,a::Cyc)=gcd(gcd(collect(values(a.d))),b)
 
+using LinearAlgebra: dot
 # testmat(12)^2
 # 1.5.3 347.534 ms (4367402 allocations: 366.17 MiB)
 # 1.5.3 565.431 ms (5861810 allocations: 775.28 MiB) HModuleElts
@@ -1483,7 +1478,7 @@ Base.gcd(b::Number,a::Cyc)=gcd(gcd(collect(values(a.d))),b)
 # 1.8.5 svec 285.653 ms (3568605 allocations: 265.86 MiB)
 # 1.9.0 174.725 ms (1856571 allocations: 188.89 MiB)
 function testmat(p)
-  ss=[[i,j] for i in 0:p-1 for j in i+1:p-1]
-  [(E(p,i'*reverse(j))-E(p,i'*j))//p for i in ss,j in ss]
+  ss=[(i,j) for i in 0:p-1 for j in i+1:p-1]
+  [E(p,dot(i,reverse(j)))-E(p,dot(i,j)) for i in ss,j in ss].//p
 end
 end
