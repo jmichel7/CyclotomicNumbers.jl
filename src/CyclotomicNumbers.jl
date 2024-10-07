@@ -1277,6 +1277,7 @@ Base.:-(a::Root1,b::Root1)=Cyc(a)-Cyc(b)
 Base.:-(r::Root1)=-Cyc(r)
 Base.promote_rule(a::Type{Root1},b::Type{Cyc{T}}) where T =b
 Base.promote_rule(a::Type{Root1},b::Type{<:Real})=Cyc{b}
+Base.promote_rule(a::Type{Root1},::Type{Bool})=Cyc{Int}
 Base.promote_rule(a::Type{Root1},b::Type{Complex{T}}) where T =Cyc{promote_type(T,Int)}
 
 struct Quadratic
