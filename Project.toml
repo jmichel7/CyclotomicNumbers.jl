@@ -1,7 +1,7 @@
 name = "CyclotomicNumbers"
 uuid = "c380f8b6-65b3-4789-a31b-7d6b5dc6d4c5"
 authors = ["Jean Michel <jean.michel@imj-prg.fr>"]
-version = "0.1.8"
+version = "0.1.9"
 
 [deps]
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
