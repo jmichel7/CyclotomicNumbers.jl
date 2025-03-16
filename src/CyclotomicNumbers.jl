@@ -448,6 +448,8 @@ Base.inv(a::Root1)=Root1(;r=-a.r)
 Base.conj(a::Root1)=inv(a)
 Base.:/(a::Root1,b::Root1)=a*inv(b)
 Base.://(a::Root1,b::Root1)=a/b
+Base.denominator(a::Root1)=E(1)
+Base.numerator(a::Root1)=a
 
 #------------------------ type Cyc ----------------------------------
 const impl=:MM # I tried 4 different implementations.
