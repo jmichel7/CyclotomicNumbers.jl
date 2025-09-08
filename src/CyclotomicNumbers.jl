@@ -1212,7 +1212,7 @@ end
 conjugates(c::Union{Rational{<:Integer},Integer})=[c]
 
 function Base.inv(c::Cyc{<:Integer})
-  if conductor(c)==1 return Cyc(inv(num(c))) end
+  if conductor(c)==1 return Cyc(inv(num(c)//1)) end
   l=conjugates(c)
   r=l[2]
   for t in l[3:end] r=*(r,t;reduce=false) end
