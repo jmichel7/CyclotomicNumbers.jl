@@ -122,10 +122,7 @@ julia> Int(E(4))
 ERROR: InexactError: convert(Int64, E(4))
 ```
 ```julia-repl
-julia> inv(1+E(4)) # like for Integers inverse involves floats
-Cyc{Float64}: 0.5-0.5ζ₄
-
-julia> 1//(1+E(4))  # but not written this way
+julia> inv(1+E(4))  # inverse by default is rational
 Cyc{Rational{Int64}}: (1-ζ₄)/2
 
 julia> Cyc(1//2+im) # we can convert Gaussian rationals to cyclotomics

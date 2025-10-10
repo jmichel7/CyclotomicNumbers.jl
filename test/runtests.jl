@@ -7,7 +7,8 @@ function mytest(file::String,cmd::String,man::String)
   exec=replace(exec,r"\s*$"m=>""); exec=replace(exec,r"\s*$"s=>"")
   exec=replace(exec,r"^\s*"=>"")
   if exec==man return true end
-  i=findfirst(i->i<=lastindex(man) && exec[i]!=man[i],collect(eachindex(exec)))
+  inds=collect(eachindex(exec))
+  i=inds[findfirst(i->i<=lastindex(man) && exec[i]!=man[i],inds)]
   print("exec=$(repr(exec[i:end]))\nmanl=$(repr(man[i:end]))\n")
   false
 end
@@ -19,8 +20,7 @@ end
 @test mytest("CyclotomicNumbers.jl","a=E(3)+E(3,2)","Cyc{Int64}: -1")
 @test mytest("CyclotomicNumbers.jl","conductor(a)","1")
 @test mytest("CyclotomicNumbers.jl","typeof(Int(a))","Int64")
-@test mytest("CyclotomicNumbers.jl","inv(1+E(4))","Cyc{Float64}: 0.5-0.5ζ₄")
-@test mytest("CyclotomicNumbers.jl","1//(1+E(4))","Cyc{Rational{Int64}}: (1-ζ₄)/2")
+@test mytest("CyclotomicNumbers.jl","inv(1+E(4))","Cyc{Rational{Int64}}: (1-ζ₄)/2")
 @test mytest("CyclotomicNumbers.jl","Cyc(1//2+im)","Cyc{Rational{Int64}}: (1+2ζ₄)/2")
 @test mytest("CyclotomicNumbers.jl","conj(1+E(4))","Cyc{Int64}: 1-ζ₄")
 @test mytest("CyclotomicNumbers.jl","real(E(3))","Cyc{Rational{Int64}}: -1//2")
@@ -66,5 +66,4 @@ end
 @test mytest("CyclotomicNumbers.jl","root(-1)","Cyc{Int64}: ζ₄")
 @test mytest("CyclotomicNumbers.jl","root(E(4))","Root1: ζ₈")
 @test mytest("CyclotomicNumbers.jl","root(27//8,6)","Cyc{Rational{Int64}}: √6/2")
-end
 end
