@@ -43,11 +43,11 @@ This package is similar (and mostly compatible) with Marek Kaluba's package
 discussed merging them but concluded it would be a lot of work for benefits
 which are not clear currently. Some differences are:
 
-  - I define two types in this  package: `Root1` represents a root of unity,
-    and  `Cyc` a cyclotomic number. The advantage of having a separate type
-    for  roots of  unity is  that computations  are very  fast for them, of
-    which  I take advantage  in the package  `CycPol` for polynomials whose
-    zeros are roots of unity.
+  - I define two types in this package: [`Root1`](@ref) represents a root of
+    unity, and [`Cyc`](@ref) a cyclotomic number. The advantage of having a
+    separate type for roots of unity is that computations are very fast for
+    them, of which I take advantage in the package `CycPol` for polynomials
+    whose zeros are roots of unity.
 
   - In Kaluba's package  numbers are not  systematically lowered but only on
     demand  (like  for  printing).  this  speeds  up some computations by a
@@ -85,9 +85,9 @@ vectors (like `Cyclotomics`) --- I prepared boolean flags to choose various
 implementations  in the  code. I  have currently  chosen the implementation
 with `ModuleElts` and systematic lowering as giving the best results.
 
-The main way to build a Cyclotomic number is to use the function `E(n,k=1)`
-which  constructs  the  `Root1`  equal  to  `ζₙᵏ`,  and  then  make  linear
-combinations of such numbers.
+The  main  way  to  build  a  Cyclotomic  number  is  to  use  the function
+[`E`](@ref)`(n,k=1)`  which constructs the  [`Root1`](@ref) equal to `ζₙᵏ`,
+and then make linear combinations of such numbers.
 
 # Examples
 ```julia-repl
@@ -149,8 +149,8 @@ Root1: ζ₉
 julia> Root1(1+E(4)) # the constructor Root1 returns nothing for a non-root
 ```
 
-The  group of  roots of  unity is  isomorphic to  ℚ /ℤ  , thus  `Root1` are
-represented internally by a rational number in `[0,1[`.
+The  group of roots of  unity is isomorphic to  ℚ /ℤ , thus [`Root1`](@ref)
+are represented internally by a rational number in `[0,1[`.
 
 ```julia-repl
 julia> Root1(;r=1//4) # this constructor ensures the fraction is in [0,1[
@@ -159,13 +159,13 @@ Root1: ζ₄
 julia> c=E(4)*E(3) # fast computation if staying inside roots of unity
 Root1: ζ₁₂⁷
 ```
-`Root1` have the same operations as `Cyc`, but are first converted to `Cyc`
-for  any  operation  other  than  `one,  isone,  *, ^, inv, conj, /, //`. A
-`Root1`  can be  raised to  a `Rational`  power, which  extracts a  root if
-needed.  A `Root1` can be  taken apart using `order`  and `exponent` --- if
-`a`  and `b` are prime to each other,  `a` is the order of `E(a,b)` and `b`
-(taken  mod `a`) is the exponent. Note  that the order is not the conductor
-since `E(6)==-E(3)` has order 6 and conductor 3.
+[`Root1`](@ref)  have the same  operations as [`Cyc`](@ref),  but are first
+converted  to `Cyc` for  any operation other  than `one, isone,  *, ^, inv,
+conj, /, //`. A `Root1` can be raised to a `Rational` power, which extracts
+a root if needed. A `Root1` can be taken apart using `order` and `exponent`
+---  if `a` and `b` are  prime to each other, `a`  is the order of `E(a,b)`
+and  `b` (taken mod  `a`) is the  exponent. Note that  the order is not the
+conductor since `E(6)==-E(3)` has order 6 and conductor 3.
 
 ```julia-repl
 julia> c=Complex{Float64}(E(3))  # convert to Complex{float} is sometimes useful
@@ -250,8 +250,8 @@ julia> valtype(a) # the type of the coefficients of a
 Int64
 ```
 
-For more information see the docstring for the methods Quadratic,
-galois, root, conjugates.
+For more information see the methods [`Quadratic`](@ref), [`galois`](@ref),
+[`root`](@ref), [`conjugates`](@ref).
 
 Finally, a benchmark:
 
@@ -612,6 +612,7 @@ end
 Base.zero(::Type{Cyc{T}}) where T=Cyc{T}(0)
 Base.one(c::Cyc{T}) where T =Cyc{T}(1)
 
+"`Cyc(c::Complex)` converts `c` to a `Cyc` of conductor 4"
 function Cyc(c::Complex)
   if iszero(imag(c)) return Cyc(real(c)) end
 if impl==:vec
@@ -813,6 +814,7 @@ function Cyc(n::Integer,::Type{T},p) where T
 end
 end
 
+"`Cyc(a::Root1)` converts `a` to a `Cyc`"
 function Cyc(a::Root1) # the result is guaranteed lowered
   n=order(a)
   e=exponent(a)

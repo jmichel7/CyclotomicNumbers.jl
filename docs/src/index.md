@@ -1,12 +1,9 @@
 # CyclotomicNumbers
-```@contents
-Depth=3
-```
-
 ```@docs
 CyclotomicNumbers
 E
 Root1
+Cyc
 conductor
 coefficients
 denominator
