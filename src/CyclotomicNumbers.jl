@@ -868,10 +868,9 @@ function Base.hash(a::Cyc, h::UInt)
   hash(a.d, hash(conductor(a), h))
 end
 
+using LaTeXStrings
 function Base.show(io::IO, ::MIME"text/html", a::Cyc)
-  print(io, "\$")
-  show(IOContext(io,:TeX=>true),a)
-  print(io, "\$")
+  print(io,latexstring(repr(a,context=IOContext(io,:TeX=>true))))
 end
 
 function Base.show(io::IO, ::MIME"text/plain", r::Cyc)

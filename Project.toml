@@ -4,12 +4,14 @@ authors = ["Jean Michel <jean.michel@imj-prg.fr>"]
 version = "0.1.10"
 
 [deps]
+LaTeXStrings= "b964fa9f-0449-5b57-a5c2-d3ea65f4040f"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 ModuleElts = "4249f315-58d4-4c46-b324-3577fc7dfca0"
 Primes = "27ebfcd6-29c5-5fa9-bf4b-fb8fc14df3ae"
 SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf" # for :svec
 
 [compat]
+LaTeXStrings= "1.4"
 LinearAlgebra = "1"
 ModuleElts = "0.1.5"
 Primes = "0.5.3, 0.6"
