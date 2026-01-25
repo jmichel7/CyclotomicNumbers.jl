@@ -262,8 +262,8 @@ julia> function testmat(p)
        end
 testmat (generic function with 1 method)
 
-julia> @btime CyclotomicNumbers.testmat(12)^2;  # on Julia 1.8.5
-  182.929 ms (2032503 allocations: 198.22 MiB)
+julia> @btime CyclotomicNumbers.testmat(12)^2;  # on Julia 1.12.4
+  158.634 ms (2645250 allocations: 164.03 MiB)
 ```
 The equivalent in GAP:
 
@@ -495,6 +495,16 @@ mutable struct Cyc{T <: Real}<: Number   # a cyclotomic number
 end
 Base.pairs(c::Cyc)=c.d
 end
+
+@doc """
+A `Cyc` representing a cyclotomic number (a sum of roots of unity with real
+coefficients)  has two  fields: the  conductor, and  a list of pairs `i=>c`
+where `c` is the coefficient of `ζₙⁱ`.
+
+We  do not need the coefficient on all `n`-th roots of unity, but only on a
+basis  of `ℤ[ζₙ]`. We use  the *Zumbroich basis*, which  can be obtained by
+`CyclotomicNumbers.zumbroich_basis(n)`.
+""" Cyc
 
 if impl==:MM
   conductor(c::Cyc)=c.n
@@ -869,7 +879,7 @@ function Base.hash(a::Cyc, h::UInt)
 end
 
 using LaTeXStrings
-function Base.show(io::IO, ::MIME"text/html", a::Cyc)
+function Base.show(io::IO, ::MIME"text/latex", a::Cyc)
   print(io,latexstring(repr(a,context=IOContext(io,:TeX=>true))))
 end
 
