@@ -329,19 +329,18 @@ function stringind(io::IO,n::Integer)
   end
 end
 
+using Primes: factor, eachfactor
+
 #---- next function duplicated from Combinat to avoid dependency ----------
 "`CyclotomicNumbers.prime_residues(n)` the numbers less than `n` and prime to `n` "
 function prime_residues(n)
   if n==1 return [0] end
-  pp=trues(n-1)
-  for i in 2:div(n,2)
-    if !pp[i] || n%i!=0 continue end
-    pp[i:i:n-1].=false
+  pp=trues(n) # use a sieve to go fast
+  for (p,_) in eachfactor(n)
+    pp[p:p:n].=false
   end
-  (1:n-1)[pp]
+  (1:n)[pp]
 end
-
-using Primes: factor, eachfactor
 
 #------------------------ type Root1 ----------------------------------
 """
@@ -434,10 +433,10 @@ Base.isless(d::Real,c::Root1)=
 #@test isless(-2,E(2))
 #@test_throws DomainError isless(0,E(3))
 Base.:(==)(a::Root1,b::Root1)=a.r==b.r
-Base.one(a::Root1)=E(1)
-Base.zero(a::Root1)=zero(Cyc{Int})
+Base.one(::Root1)=E(1)
+Base.zero(::Root1)=zero(Cyc{Int})
 Base.isone(a::Root1)=iszero(a.r)
-Base.iszero(a::Root1)=false
+Base.iszero(::Root1)=false
 Base.:*(a::Root1,b::Root1)=Root1(;r=a.r+b.r)
 Base.:^(a::Root1,n::Integer)=Root1(;r=n*a.r)
 Base.:^(a::Root1,r::Rational{<:Integer})=root(a,denominator(r))^numerator(r)
@@ -445,7 +444,7 @@ Base.inv(a::Root1)=Root1(;r=-a.r)
 Base.conj(a::Root1)=inv(a)
 Base.:/(a::Root1,b::Root1)=a*inv(b)
 Base.://(a::Root1,b::Root1)=a/b
-Base.denominator(a::Root1)=E(1)
+Base.denominator(::Root1)=E(1)
 Base.numerator(a::Root1)=a
 
 #------------------------ type Cyc ----------------------------------
@@ -514,7 +513,7 @@ else
   Base.getindex(c::Cyc,i::Integer)=c.d[mod(i,conductor(c))+1]
 end
 
-Base.valtype(c::Cyc{T}) where T =T # how to recover T from c
+Base.valtype(::Cyc{T}) where T =T # how to recover T from c
 
 """
    `conductor(c::Cyc)`
@@ -534,8 +533,8 @@ julia> conductor([E(3),1//2,E(4)])
 ```
 """
 conductor(a::AbstractArray)=lcm(conductor.(a))
-conductor(i::Integer)=1 # for convenience
-conductor(i::Rational{<:Integer})=1 # for convenience
+conductor(::Integer)=1 # for convenience
+conductor(::Rational{<:Integer})=1 # for convenience
 
 """
   CyclotomicNumbers.zumbroich_basis(n::Int)
@@ -546,8 +545,8 @@ conductor(i::Rational{<:Integer})=1 # for convenience
 function zumbroich_basis(n::Int)
 # This function is not used in the rest of this module. We use Elist.
   if n==1 return [0] end
-  function J(k::Int, p::Int) # see [Breuer] Rem. 1 p. 283
-    k==0 ? (p==2 ? (0:0) : (1:p-1)) : p==2 ? (0:1) : (div(1-p,2):div(p-1,2))
+  function J(k::Int, p::Int)# see [Rem. 1 p. 283, Breuer]
+    ifelse(p==2,0:(k!=0),ifelse(k==0,1:p-1,div(1-p,2):div(p-1,2)))
   end
   sort(vec(sum.(Iterators.product((div(n,p^k)*J(k-1,p)
        for (p,np) in eachfactor(n) for k in 1:np)...))).%n)
@@ -609,18 +608,18 @@ Cyc{T}(i::Real) where T<:Real=Cyc(T(i))
 
 Cyc{T}(a::Root1) where T<:Real=Cyc{T}(Cyc(a))
 
-Base.zero(c::Cyc{T}) where T=Cyc{T}(0)
+Base.zero(::Cyc{T}) where T=Cyc{T}(0)
 
 if impl==:svec obviouslyzero(c::Cyc)=nnz(c.d)==0 # faster than iszero(c.d)
 else           obviouslyzero(c::Cyc)=iszero(c.d)
 end
 if lazy Base.iszero(c::Cyc)=obviouslyzero(lower!(c))
-        Base.isone(c::Cyc)=lower!(c);isone(conductor(c)) && isone(num(c))
+        Base.isone(c::Cyc)=(lower!(c);isone(conductor(c)) && isone(num(c)))
 else    Base.iszero(c::Cyc)=obviouslyzero(c)
         Base.isone(c::Cyc)=isone(conductor(c)) && isone(num(c))
 end
 Base.zero(::Type{Cyc{T}}) where T=Cyc{T}(0)
-Base.one(c::Cyc{T}) where T =Cyc{T}(1)
+Base.one(::Cyc{T}) where T =Cyc{T}(1)
 
 "`Cyc(c::Complex)` converts `c` to a `Cyc` of conductor 4"
 function Cyc(c::Complex)
@@ -832,17 +831,14 @@ function Cyc(a::Root1) # the result is guaranteed lowered
 end
 #@test Cyc(E(6,5))==-Cyc(E(3))
 
-function Base.promote_rule(a::Type{Cyc{T1}},b::Type{T2})where {T1,T2<:Real}
+Base.promote_rule(::Type{Cyc{T1}},::Type{T2})where {T1,T2<:Real}=
   Cyc{promote_type(T1,T2)}
-end
 
-function Base.promote_rule(a::Type{Cyc{T1}},b::Type{Complex{T2}})where {T1,T2<:Real}
+Base.promote_rule(::Type{Cyc{T1}},::Type{Complex{T2}})where {T1,T2<:Real}=
   Cyc{promote_type(T1,T2)}
-end
 
-function Base.promote_rule(a::Type{Cyc{T1}},b::Type{Cyc{T2}})where {T1,T2}
+Base.promote_rule(::Type{Cyc{T1}},::Type{Cyc{T2}})where {T1,T2}=
   Cyc{promote_type(T1,T2)}
-end
 
 # total order is necessary to put Cycs in a sorted list
 # for conductor(c)==1  a<b compares correctly real(a) and real(b)
@@ -1141,7 +1137,7 @@ elseif impl==:MM
       end
     elseif iszero(length(c.d)%(p-1))
       u=zeros(Int,m)
-      for (k,v) in c.d u[1+(k%m)]+=1 end
+      for k in keys(c.d) u[1+(k%m)]+=1 end
       if !all(x->iszero(x) || x==p-1,u) continue end
       i=0; for j in eachindex(u) if !iszero(u[j]) i+=1;u[i]=j-1 end end
       resize!(u,i)
@@ -1159,9 +1155,8 @@ end
   c
 end
 
-galois(c::Rational,n::Integer)=c
-
-galois(c::Integer,n::Integer)=c
+galois(c::Rational{<:Integer},::Integer)=c
+galois(c::Integer,::Integer)=c
 
 """
 `galois(c::Cyc,n::Integer)`  applies  to  `c`  the  galois  automorphism  of `ℚ
@@ -1285,10 +1280,11 @@ Base.:(==)(a::Root1,b::Number)=Cyc(a)==b # too expensive in lazy case
 Base.:+(a::Root1,b::Root1)=Cyc(a)+Cyc(b)
 Base.:-(a::Root1,b::Root1)=Cyc(a)-Cyc(b)
 Base.:-(r::Root1)=-Cyc(r)
-Base.promote_rule(a::Type{Root1},b::Type{Cyc{T}}) where T =b
-Base.promote_rule(a::Type{Root1},b::Type{<:Real})=Cyc{b}
-Base.promote_rule(a::Type{Root1},::Type{Bool})=Cyc{Int}
-Base.promote_rule(a::Type{Root1},b::Type{Complex{T}}) where T =Cyc{promote_type(T,Int)}
+Base.promote_rule(::Type{Root1},b::Type{Cyc{T}})where T=b
+Base.promote_rule(::Type{Root1},b::Type{<:Real})=Cyc{b}
+Base.promote_rule(::Type{Root1},::Type{Bool})=Cyc{Int}
+Base.promote_rule(::Type{Root1},::Type{Complex{T}})where T=
+  Cyc{promote_type(T,Int)}
 
 struct Quadratic
   a
