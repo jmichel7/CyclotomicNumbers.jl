@@ -4,18 +4,18 @@ linear  combinations  of  roots  of  unity,  usually  with with rational or
 integer  coefficients; but it is possible to use any coefficients `<:Real`.
 Cyclotomic numbers can be converted to `Complex` numbers.
 
-The  cyclotomic  numbers  with  rational  coefficients  form  a  field, the
-cyclotomic  field. It  is the  maximal extension  of the  rationals with an
-abelian  Galois group. Its ring of  integers is the cyclotomic numbers with
-integer coefficients (called cyclotomic integers).
+The  sums of roots  of unity with  rational coefficients form  a field, the
+cyclotomic field. It is the maximal extension of the rationals which has an
+abelian  Galois group. Its ring  of integers is the  sums of roots of unity
+with integer coefficients (called cyclotomic integers).
 
 Cyclotomic  numbers are very  important for finite  groups, since character
 values of finite groups are cyclotomic integers.
 
 This package depends only on the packages `ModuleElt` and `Primes`. It is a
 port  of the  GAP implementation  of cyclotomics,  which uses a normal form
-given  by writing them in the Zumbroich basis. This form allows to find the
-smallest  Cyclotomic field  which contains  a given  number, and  decide in
+given  by writing them in  the *Zumbroich* basis. This  form allows to find
+the  smallest cyclotomic field which contains a given number, and decide in
 particular  if a cyclotomic  is zero. Let  `ζₙ=exp(2im*π/n)`. The Zumbroich
 basis is a particular subset of size φ(n) of 1,ζₙ,ζₙ²,…,ζₙⁿ⁻¹ which forms a
 basis of ℚ (ζₙ). The reference is
@@ -27,9 +27,8 @@ simpler  to understand than GAP's C  code.
 
 As GAP does, I lower automatically numbers after each computation, that is,
 reduce  them to the smallest cyclotomic  field where they belong. Currently
-the  code is somewhat  slower (depending on  the operation it  has the same
-speed or is slower up to 50%) than the C code in GAP but there are probably
-opportunities to optimize that I missed.
+the  code is, depending on the operation,  slower or faster than the C code
+in GAP; but there are probably opportunities to optimize that I missed.
 
 What GAP does which I do not do is convert automatically a Cyclotomic which
 is  rational  to  a  `Rational`,  a  `Rational`  which  is  integral  to an
@@ -98,8 +97,8 @@ julia> E(3)+E(4) # nice display at the repl
 Cyc{Int64}: ζ₁₂⁴-ζ₁₂⁷-ζ₁₂¹¹
 ```
 ```julia-rep1
-julia> print(E(3)+E(4)) # otherwise give output which can be parsed back
-E(12,4)-E(12,7)-E(12,11)
+julia> print([E(2),E(3)+E(4)]) # otherwise give output which can be parsed back
+Cyc{Int64}[-1, E(12,4)-E(12,7)-E(12,11)]
 ```
 ```julia-repl
 julia> E(12,11)-E(12,7) # square roots of integers are recognized on output
@@ -119,7 +118,7 @@ Int64
 ```
 ```julia-rep1
 julia> Int(E(4))
-ERROR: InexactError: convert(Int64, E(4))
+ERROR: InexactError: convert(Int64, ζ₄)
 ```
 ```julia-repl
 julia> inv(1+E(4))  # inverse by default is rational
@@ -391,22 +390,21 @@ end
 Base.broadcastable(r::Root1)=Ref(r)
 
 function Base.show(io::IO, ::MIME"text/plain", r::Root1)
-  if !haskey(io,:typeinfo) print(io,"Root1: ") end
+  if get(io,:typeinfo,false)==false print(io,"Root1: ") end
   show(io,r)
 end
 
 function Base.show(io::IO, r::Root1)
   repl=get(io,:limit,false)
   TeX=get(io,:TeX,false)
+  typeinfo=get(io,:typeinfo,false)!=false
   d=exponent(r)
   c=order(r)
-  if repl || TeX
-    if c==1 print(io,"1")
-    elseif c==2 print(io,"-1")
-    else print(io,TeX ? "\\zeta" : "ζ",stringind(io,c),stringexp(io,d))
-    end
-  else
-    print(io,(d==1 || d==0) ? "E($c)" : "E($c,$d)")
+  if c==1 &&(repl||TeX||typeinfo) print(io,"1")
+  elseif c==2 &&(repl||TeX||typeinfo) print(io,"-1")
+  elseif repl || TeX
+    print(io,TeX ? "\\zeta" : "ζ",stringind(io,c),stringexp(io,d))
+  else print(io,(d==1 || d==0) ? "E($c)" : "E($c,$d)")
   end
 end
 
@@ -880,7 +878,7 @@ function Base.show(io::IO, ::MIME"text/latex", a::Cyc)
 end
 
 function Base.show(io::IO, ::MIME"text/plain", r::Cyc)
-  if !haskey(io,:typeinfo) print(io,typeof(r),": ") end
+  if get(io,:typeinfo,false)==false print(io,typeof(r),": ") end
   show(io,r)
 end
 
@@ -920,8 +918,9 @@ function Base.show(io::IO, p::Cyc)
   quadratic=get(io,:quadratic,true)
   repl=get(io,:limit,false)
   TeX=get(io,:TeX,false)
+  typeinfo=get(io,:typeinfo,false)!=false
   function printtyped(n)
-    if repl||TeX|| get(io,:typeinfo,Any)==typeof(p) print(io,n)
+    if repl||TeX||typeinfo print(io,n)
     else print(io,typeof(p),"(",n,")")
     end
   end
@@ -955,7 +954,7 @@ function Base.show(io::IO, p::Cyc)
     end
   end
   n=rqq[argmin(length.(rqq))]
-  if repl||TeX|| get(io,:typeinfo,Any)==typeof(p) print(io,n)
+  if repl||TeX||typeinfo print(io,n)
   else print(io,typeof(p),"(",n,")")
   end
 end
