@@ -1,6 +1,6 @@
 """
 This  package deals with cyclotomic numbers,  the complex numbers which are
-linear  combinations  of  roots  of  unity,  usually  with with rational or
+linear  combinations  of  roots  of  unity,  usually  with rational or
 integer  coefficients; but it is possible to use any coefficients `<:Real`.
 Cyclotomic numbers can be converted to `Complex` numbers.
 
@@ -49,7 +49,7 @@ which are not clear currently. Some differences are:
     whose zeros are roots of unity.
 
   - In Kaluba's package  numbers are not  systematically lowered but only on
-    demand  (like  for  printing).  this  speeds  up some computations by a
+    demand  (like  for  printing).  This  speeds  up some computations by a
     factor  approaching 2, but it also makes some computations I have to do
     infeasible,  like the following one, which if not lowering involves too
     large fields; the answer is `-36ζ₃²`:
@@ -193,17 +193,17 @@ julia> complex(E(4))
 julia> complex(E(3))
 -0.4999999999999999 + 0.8660254037844387im
 ```
-`Cyc`s have methods `copy, hash, ==, cmp, isless` (total order) so they can
-be  keys in hashes, elements of sets,  and can be sorted. Cyclotomics which
-are  integers  or  rationals  compare  correctly  to `Real`s (this does not
-extend to irrational real `Cyc`s):
+`Cyc`s  have methods `hash, ==,  cmp, isless` (total order)  so they can be
+keys  in hashes, elements of sets, and can be sorted. Cyclotomics which are
+integers or rationals compare correctly to `Real`s (this does not extend to
+irrational real `Cyc`s or non-real `Cyc` which compare first by conductor):
 
 ```julia-repl
 julia> -1<Cyc(0)<1
 true
 ```
 
-`Cyc`s have the operations `+, -, *, /, //, inv, ^, conj, abs2, abs, image,
+`Cyc`s  have the operations `+, -, *, /, //, inv, ^, conj, abs2, abs, imag,
 real, reim, isinteger, isreal, one, isone, zero, iszero, complex, adjoint`.
 Cyclotomics   with  rational  or  integer  coefficients  have  the  methods
 `numerator`  and  `denominator`:  a  `Cyc`  `x`  is a Cyclotomic integer if
@@ -407,6 +407,8 @@ function Base.show(io::IO, r::Root1)
   else print(io,(d==1 || d==0) ? "E($c)" : "E($c,$d)")
   end
 end
+
+Base.hash(a::Root1, h::UInt)=hash(Cyc(a), h)
 
 function Base.cmp(a::Root1,b::Root1)
   r=cmp(conductor(a),conductor(b))
@@ -838,8 +840,9 @@ Base.promote_rule(::Type{Cyc{T1}},::Type{Complex{T2}})where {T1,T2<:Real}=
 Base.promote_rule(::Type{Cyc{T1}},::Type{Cyc{T2}})where {T1,T2}=
   Cyc{promote_type(T1,T2)}
 
-# total order is necessary to put Cycs in a sorted list
-# for conductor(c)==1  a<b compares correctly real(a) and real(b)
+# We define a total order on `Cyc` so they can be sorted. A `Cyc` c of
+# conductor 1  compares as  `real(c)`.
+# Other `Cyc`s compare first by conductor.
 function Base.cmp(a::Cyc,b::Cyc)
   @static if lazy lower!(a);lower!(b) end
   t=cmp(conductor(a),conductor(b))
@@ -869,7 +872,10 @@ Base.isless(a::Cyc,b::Root1)=a<Cyc(b)
 # hash is necessary to put Cycs as keys of a Dict or make a Set
 function Base.hash(a::Cyc, h::UInt)
   @static if lazy lower!(a) end
-  hash(a.d, hash(conductor(a), h))
+  n = conductor(a)
+  n == 1 && return hash(num(a), h)                  # real / integral Cyc
+  n == 4 && return hash(Complex(a[0], a[1]), h)     # Gaussian rationals
+  hash(a.d, hash(n, h))                             # no Real is == to these
 end
 
 using LaTeXStrings
