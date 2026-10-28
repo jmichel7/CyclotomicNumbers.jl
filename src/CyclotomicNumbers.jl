@@ -12,6 +12,11 @@ with integer coefficients (called cyclotomic integers).
 Cyclotomic  numbers are very  important for finite  groups, since character
 values of finite groups are cyclotomic integers.
 
+When  working with cyclotomic numbers with rational coefficients, overflows
+are  detected. But when working with Julia  `Int` they are silent. For this
+reason,   we  recommend  using  `SafeInt`  coefficients  from  the  package
+`SaferIntegers` instead of `Int`.
+
 This package depends only on the packages `ModuleElt` and `Primes`. It is a
 port  of the  GAP implementation  of cyclotomics,  which uses a normal form
 given  by writing them in  the *Zumbroich* basis. This  form allows to find
@@ -118,7 +123,7 @@ Int64
 ```
 ```julia-rep1
 julia> Int(E(4))
-ERROR: InexactError: convert(Int64, ζ₄)
+ERROR: DomainError: convert(Int64, ζ₄)
 ```
 ```julia-repl
 julia> inv(1+E(4))  # inverse by default is rational
@@ -148,8 +153,8 @@ Root1: ζ₉
 julia> Root1(1+E(4)) # the constructor Root1 returns nothing for a non-root
 ```
 
-The  group of roots of  unity is isomorphic to  ℚ /ℤ , thus [`Root1`](@ref)
-are represented internally by a rational number in `[0,1[`.
+The  group of roots of unity is isomorphic to ℚ /ℤ , thus a [`Root1`](@ref)
+is represented internally by a rational number in `[0,1[`.
 
 ```julia-repl
 julia> Root1(;r=1//4) # this constructor ensures the fraction is in [0,1[
@@ -195,8 +200,9 @@ julia> complex(E(3))
 ```
 `Cyc`s  have methods `hash, ==,  cmp, isless` (total order)  so they can be
 keys  in hashes, elements of sets, and can be sorted. Cyclotomics which are
-integers or rationals compare correctly to `Real`s (this does not extend to
-irrational real `Cyc`s or non-real `Cyc` which compare first by conductor):
+integers  or rationals compare correctly to `Real`s; real `Cyc`s compare to
+reals  after converting to  `Float64`; and non-real  `Cyc` compare first by
+conductor.
 
 ```julia-repl
 julia> -1<Cyc(0)<1
@@ -204,8 +210,11 @@ true
 ```
 
 `Cyc`s  have the operations `+, -, *, /, //, inv, ^, conj, abs2, abs, imag,
-real, reim, isinteger, isreal, one, isone, zero, iszero, complex, adjoint`.
-Cyclotomics   with  rational  or  integer  coefficients  have  the  methods
+real,  reim, isinteger, isreal, one, isone, zero, iszero, complex, adjoint,
+copy`.  Note that  `complex` and  `abs` applied  to exact  cyclotomics with
+rational or integer coefficients have type `ComplexF64` so are inexact.
+
+Cyclotomics with rational or  integer coefficients have the methods
 `numerator`  and  `denominator`:  a  `Cyc`  `x`  is a Cyclotomic integer if
 `denominator(x)==1`   and  then  `numerator(x)`   gives  the  corresponding
 `Cyc{<:Integer}`.
@@ -351,7 +360,7 @@ constructors are `Root1(;r=y//x)` and `E`.
 """
 struct Root1 <: Number # E(c,n)
   r::Rational{Int}
-  Root1(;r)=new(modZ(Rational{Int}(r)))
+  Root1(;r::Union{Integer,Rational{<:Integer}})=new(modZ(Rational{Int}(r)))
 end
 
 
@@ -435,6 +444,7 @@ Base.isless(d::Real,c::Root1)=
 Base.:(==)(a::Root1,b::Root1)=a.r==b.r
 Base.one(::Root1)=E(1)
 Base.zero(::Root1)=zero(Cyc{Int})
+Base.zero(::Type{Root1})=throw(ArgumentError("A Root1 cannot be zero"))
 Base.isone(a::Root1)=iszero(a.r)
 Base.iszero(::Root1)=false
 Base.:*(a::Root1,b::Root1)=Root1(;r=a.r+b.r)
@@ -508,9 +518,11 @@ basis  of `ℤ[ζₙ]`. We use  the *Zumbroich basis*, which  can be obtained by
 if impl==:MM
   conductor(c::Cyc)=c.n
   Base.getindex(c::Cyc,i::Integer)=c.d[mod(i,conductor(c))]
+  Base.copy(c::Cyc) = Cyc(conductor(c), copy(c.d))
 else
   conductor(c::Cyc)=length(c.d)
   Base.getindex(c::Cyc,i::Integer)=c.d[mod(i,conductor(c))+1]
+  Base.copy(c::Cyc) = Cyc(copy(c.d))
 end
 
 Base.valtype(::Cyc{T}) where T =T # how to recover T from c
@@ -535,6 +547,7 @@ julia> conductor([E(3),1//2,E(4)])
 conductor(a::AbstractArray)=lcm(conductor.(a))
 conductor(::Integer)=1 # for convenience
 conductor(::Rational{<:Integer})=1 # for convenience
+conductor(::Real)=1 # for convenience
 
 """
   CyclotomicNumbers.zumbroich_basis(n::Int)
@@ -583,12 +596,12 @@ end
 end
 
 """
-`denominator(c::Cyc{<:Rational})`
+`denominator(c::Cyc{<:Union{Rational,Integer}})`
 
 returns   the   smallest   integer   `d`   such  that  `d*c`  has  integral
 `coefficients` (thus is an algebraic integer).
 """
-Base.denominator(c::Cyc)=lcm(denominator.(values(c.d)))
+Base.denominator(c::Cyc{<:Union{Rational,Integer}})=lcm(denominator.(values(c.d)))
 
 """
 `numerator(c::Cyc{<:Rational})`
@@ -654,11 +667,11 @@ end
 function (::Type{T})(c::Cyc)where T<:Union{Integer,Rational}
   @static if lazy lower!(c) end
   if conductor(c)==1 return T(num(c)) end
-  throw(InexactError(:convert,T,c))
+  throw(DomainError(:convert,T,c))
 end
 
 function Base.convert(::Type{T},c::Cyc;check=true)where T<:AbstractFloat
-  if check && !isreal(c) throw(InexactError(:convert,T,c)) end
+  if check && !isreal(c) throw(DomainError(:convert,T,c)) end
   real(convert(Complex{T},c))
 end
 
@@ -682,7 +695,7 @@ function Complex{T}(c::Cyc)where T<:Union{Integer,Rational}
     end
     return res
   end
-  throw(InexactError(:convert,Complex{T},c))
+  throw(DomainError(:convert,Complex{T},c))
 end
 
 Complex{T}(a::Root1) where T=Complex{T}(Cyc(a))
@@ -768,10 +781,12 @@ function Elist(n::Int,i::Int)
    end
 end
 
-# p iterator of pairs i=>c meaning c*E(n,i)
-# This constructor is not in API since the result may or may not need lowering
+# constructs  a Cyc{T} of conductor  n as a sum  of p, an iterator of pairs
+# i=>c  meaning c*E(n,i). This is a strictly internal API since it does not
+# lower  the result. It is for the caller  to decide if the result needs or
+# not lowering.
 if true
-function Cyc(n::Integer,::Type{T},p) where T
+function rawCyc(n::Integer,::Type{T},p) where T
   if impl==:MM && length(p)==1
     (i,c)=first(p)
     if iszero(c) return zero(Cyc{T}) end
@@ -795,8 +810,8 @@ function Cyc(n::Integer,::Type{T},p) where T
   else Cyc(n,res)
   end
 end
-else # attempt to be revisited
-function Cyc(n::Integer,::Type{T},p) where T
+else # attempt to be revisited: makes less allocations but slightly slower
+function rawCyc(n::Integer,::Type{T},p) where T
   if impl==:MM && length(p)==1
     (i,c)=first(p)
     if iszero(c) return zero(Cyc{T}) end
@@ -827,7 +842,7 @@ end
 function Cyc(a::Root1) # the result is guaranteed lowered
   n=order(a)
   e=exponent(a)
-  n%4==2 ? Cyc(div(n,2),Int,(div(e,2)+div(n+2,4)=>-1,)) : Cyc(n,Int,(e=>1,))
+  n%4==2 ? rawCyc(div(n,2),Int,(div(e,2)+div(n+2,4)=>-1,)) : rawCyc(n,Int,(e=>1,))
 end
 #@test Cyc(E(6,5))==-Cyc(E(3))
 
@@ -972,13 +987,13 @@ function promote_conductor(a::Cyc{T},b::Cyc{T})where T
   if n!=conductor(a)
     m=div(n,conductor(a))
     let m=m
-      a=Cyc(n,valtype(a),i*m=>v for (i,v) in pairs(a))
+      a=rawCyc(n,valtype(a),i*m=>v for (i,v) in pairs(a))
     end
   end
   if n!=conductor(b)
     m=div(n,conductor(b))
     let m=m # the eltype of next iterator is Any!
-      b=Cyc(n,valtype(b),i*m=>v for (i,v) in pairs(b))
+      b=rawCyc(n,valtype(b),i*m=>v for (i,v) in pairs(b))
     end
   end
   (a,b)
@@ -1046,7 +1061,7 @@ function Base.:*(a::Cyc,b::Cyc;reduce=!lazy)
   n=lcm(conductor(a),conductor(b))
   na=div(n,conductor(a))
   nb=div(n,conductor(b))
-  c=Cyc(n,valtype(a),na*i+nb*j=>ai*bj for (i,ai) in pairs(a),(j,bj) in pairs(b))
+  c=rawCyc(n,valtype(a),na*i+nb*j=>ai*bj for (i,ai) in pairs(a),(j,bj) in pairs(b))
   reduce ? lower!(c) : c
 end
 
@@ -1181,7 +1196,7 @@ function galois(c::Cyc,n::Integer)
     throw(DomainError(n,"not prime to conductor $(conductor(c))"))
   end
   if obviouslyzero(c) return c end
-  Cyc(conductor(c),valtype(c),e*n=>p for (e,p) in pairs(c))
+  rawCyc(conductor(c),valtype(c),e*n=>p for (e,p) in pairs(c))
 end
 
 function galois(c::Root1,n::Integer)
@@ -1383,14 +1398,33 @@ function Base.show(io::IO,q::Quadratic)
   if q.den!=1 && rq!="0" print(io,(repl||TeX) ? "/" : "//",q.den) end
 end
 
-const inforoot=Ref(false)
-xprint(x...;p...)=print(IOContext(stdout,:limit=>true,p...),x...)
+inforoot::Bool=false
 function proot(x,n,r)
+  xprint(x...;p...)=print(IOContext(stdout,:limit=>true,p...),x...)
   xprint("root(",x;quadratic=false)
   if n!=2 xprint(",",n) end
   xprint(")=",r,"\n";quadratic=false)
 end
 const Irootdict=Dict{Tuple{Int,Int},Union{Cyc{Int},Int,Cyc{BigInt}}}()
+
+function _root(x,n)
+  if x<0 && n==2 return E(4)*root(-x) end
+  l=factor(x)
+  if any(y->(2y)%n!=0,values(l))
+    if x==-1 return root(E(2),n) end
+    error("root($x,$n) not implemented")
+  end
+  a=prod(p^div(pow,n) for (p,pow) in l)
+  b=[p for (p,pow) in l if pow%n!=0]
+  for p in b
+    if p%4==1 a*=sum(k->E(p,k^2),1:p)
+    elseif p==2 a*=E(8)-E(8,3)
+    elseif p%4==3 a*=E(4,3)*sum(k->E(p,k^2),1:p)
+    end
+  end
+  if inforoot proot(x,n,a) end
+  a
+end
 
 """
 `root(x,n=2)`
@@ -1415,24 +1449,9 @@ function root(x::Union{Int,BigInt},n=2) # only defined for Int so no conflict wi
   if n==2 && x>=0
     r=isqrt(x);if r^2==x return r end
   end
-  get!(Irootdict,(n,x)) do
-    if x==1 || (x==-1 && isodd(n)) return x end
-    if x<0 && n==2 return E(4)*root(-x) end
-    l=factor(x)
-    if any(y->(2y)%n!=0,values(l))
-      if x==-1 return root(E(2),n) end
-      error("root($x,$n) not implemented")
-    end
-    a=prod(p^div(pow,n) for (p,pow) in l)
-    b=[p for (p,pow) in l if pow%n!=0]
-    for p in b
-      if p%4==1 a*=sum(k->E(p,k^2),1:p)
-      elseif p==2 a*=E(8)-E(8,3)
-      elseif p%4==3 a*=E(4,3)*sum(k->E(p,k^2),1:p)
-      end
-    end
-    if inforoot[] proot(x,n,a) end
-    a
+  if x==1 || (x==-1 && isodd(n)) return x end
+  if x isa BigInt return _root(x,n)
+  else get!(()->_root(x,n),Irootdict,(n,x))
   end
 end
 
@@ -1467,7 +1486,7 @@ function root(x::Cyc,n=2)
       return root(num(x),n)
     end
     res=Cyc(root(r,n))
-    if inforoot[] proot(x,n,res) end
+    if inforoot proot(x,n,res) end
     res
   end
 end
