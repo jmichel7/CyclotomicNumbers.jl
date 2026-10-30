@@ -67,3 +67,4 @@ end
 @test mytest("CyclotomicNumbers.jl","root(E(4))","Root1: ζ₈")
 @test mytest("CyclotomicNumbers.jl","root(27//8,6)","Cyc{Rational{Int64}}: √6/2")
 end
+include("properties.jl")

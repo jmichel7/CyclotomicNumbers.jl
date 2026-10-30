@@ -5,6 +5,7 @@ E
 Root1
 Cyc
 conductor
+order
 coefficients
 denominator
 galois

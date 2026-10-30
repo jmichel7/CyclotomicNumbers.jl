@@ -123,7 +123,8 @@ Int64
 ```
 ```julia-rep1
 julia> Int(E(4))
-ERROR: DomainError: convert(Int64, ζ₄)
+ERROR: DomainError with ζ₄:
+cannot be converted to type Int64
 ```
 ```julia-repl
 julia> inv(1+E(4))  # inverse by default is rational
@@ -211,8 +212,9 @@ true
 
 `Cyc`s  have the operations `+, -, *, /, //, inv, ^, conj, abs2, abs, imag,
 real,  reim, isinteger, isreal, one, isone, zero, iszero, complex, adjoint,
-copy`.  Note that  `complex` and  `abs` applied  to exact  cyclotomics with
-rational or integer coefficients have type `ComplexF64` so are inexact.
+copy`.  Note  that  `complex`  applied  to  exact cyclotomics which are not
+gaussian  rationals has  type `ComplexF64`  or abs  applied to non-rational
+cyclotomics has type `Float64` so they are inexact.
 
 Cyclotomics with rational or  integer coefficients have the methods
 `numerator`  and  `denominator`:  a  `Cyc`  `x`  is a Cyclotomic integer if
@@ -377,6 +379,7 @@ E(c,n=1)=Root1(;r=n//c)
 const ζ=E
 const zeta=E
 Base.exponent(a::Root1)=numerator(a.r)
+"`order(a::Root1)` returns the order of `a`"
 order(a::Root1)=denominator(a.r)
 conductor(a::Root1)=order(a)%4==2 ? div(order(a),2) : order(a)
 
@@ -667,11 +670,13 @@ end
 function (::Type{T})(c::Cyc)where T<:Union{Integer,Rational}
   @static if lazy lower!(c) end
   if conductor(c)==1 return T(num(c)) end
-  throw(DomainError(:convert,T,c))
+  throw(DomainError(c,"cannot be converted to type $T"))
 end
 
 function Base.convert(::Type{T},c::Cyc;check=true)where T<:AbstractFloat
-  if check && !isreal(c) throw(DomainError(:convert,T,c)) end
+  if check && !isreal(c) 
+    throw(DomainError(c,"cannot be converted to type $T")) 
+  end
   real(convert(Complex{T},c))
 end
 
@@ -695,7 +700,7 @@ function Complex{T}(c::Cyc)where T<:Union{Integer,Rational}
     end
     return res
   end
-  throw(DomainError(:convert,Complex{T},c))
+  throw(DomainError(c,"cannot be converted to Complex{$T}"))
 end
 
 Complex{T}(a::Root1) where T=Complex{T}(Cyc(a))
@@ -732,8 +737,8 @@ end
 
 Base.imag(a::Root1)=imag(Cyc(a))
 Base.reim(c::Cyc)=(real(c),imag(c))
-Base.abs2(a::Root1)=abs2(Cyc(a))
-Base.abs(a::Root1)=one(a)
+Base.abs2(a::Root1)=1
+Base.abs(a::Root1)=1
 
 # memoize Elist
 const Elist_dict=Dict{Tuple{Int,Int},Pair{Bool,Vector{Int}}}((1,0)=>(true=>[0]))
@@ -1179,9 +1184,9 @@ galois(c::Rational{<:Integer},::Integer)=c
 galois(c::Integer,::Integer)=c
 
 """
-`galois(c::Cyc,n::Integer)`  applies  to  `c`  the  galois  automorphism  of `ℚ
-(ζ_conductor(c))`  raising  all  roots  of  unity  to the `n`-th power. `n`
-should be prime to `conductor(c)`.
+`galois(c::Cyc,n::Integer)`  applies to  `c` the  galois automorphism of `ℚ
+(ζ_conductor(c))`  raising all roots of unity to the `n`-th power. `n` must
+be prime to `conductor(c)`.
 # Examples
 ```julia-repl
 julia> galois(1+E(4),-1) # galois(c,-1) is the same as conj(c)
@@ -1430,8 +1435,9 @@ end
 `root(x,n=2)`
 
 computes  an `n`-th root of `x`  when we know how to  do it. We know how to
-compute  `n`-th roots  of roots  of unity,  and `n`-th  or `2n`-th roots of
-perfect `n`-th powers of integers or rationals.
+compute  `n`-th  roots  of  roots  of  unity  (we  chose a `n`-th root with
+smallest  order), and `n`-th  or `2n`-th roots  of perfect `n`-th powers of
+integers or rationals.
 
 ```julia-repl
 julia> root(-1)
